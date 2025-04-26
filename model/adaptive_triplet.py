@@ -49,7 +49,7 @@ def adaptive_triplet_loss(anchor, positive, negative, positive_patterns, negativ
         We can use a large margin without compromise the embedding quality (e.g. 50 - 100)
         The L1 in land use can be sometimes very low (e.g., 0.46 in Singapore), but we don't do such cherry-picking.
     """
-    margin = 100 * wasserstein_distance(positive_patterns, negative_patterns)
+    margin = _lambda * wasserstein_distance(positive_patterns, negative_patterns)
     return triplet_loss(anchor, positive, negative, margin=margin)
 
 
