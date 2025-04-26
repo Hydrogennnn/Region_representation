@@ -45,7 +45,7 @@ if __name__ == '__main__':
     city_data = CityData(args.city, with_random=not args.no_random)
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     print('Use:', device)
-    args.save_name = ("svi" if args.use_svi else "") + f"dim{args.dim}-lambda{args.lamb}-lr{args.lr}"
+    args.save_name += ("svi" if args.use_svi else "") + f"dim{args.dim}-lambda{args.lamb}-lr{args.lr}"
 
     use_wandb = args.use_wandb
     use_svi = args.use_svi
