@@ -92,7 +92,7 @@ class PatternTrainer(object):
             if use_wandb:
                 wandb.log({
                     'pattern-loss': np.mean(losses)
-                })
+                },step=epoch)
             self.scheduler.step()
             if epoch % 10 == 0:
                 self.save_embedding(save_path + save_name + '_' + str(epoch) + '.npy', test_loader)
@@ -211,5 +211,5 @@ class RegionTrainer(object):
             if use_wandb:
                 wandb.log({
                     "Region-loss": np.mean(train_losses)
-                })
+                }, step=epoch)
             self.region_scheduler.step()
