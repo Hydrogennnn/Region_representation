@@ -35,6 +35,7 @@ def parse_args():
     parser.add_argument('--use_wandb', action='store_true', default=False)
     parser.add_argument('--use_svi', action='store_true', default=False)
     parser.add_argument('--lamb', type=int, default=100)
+    parser.add_argument('--first_epoch', type=int, default=20)
     return parser.parse_args()
 
 
@@ -48,6 +49,7 @@ if __name__ == '__main__':
 
     use_wandb = args.use_wandb
     use_svi = args.use_svi
+    first_epoch = args.first_epoch
     pattern_encoder = PatternEncoder(d_building=city_data.building_feature_dim,
                                      d_poi=city_data.poi_feature_dim,
                                      d_svi=city_data.svi_emb_dim,
@@ -75,8 +77,8 @@ if __name__ == '__main__':
     pattern_scheduler = torch.optim.lr_scheduler.StepLR(pattern_optimizer, step_size=1, gamma=args.gamma)
     pattern_trainer = PatternTrainer(city_data, pattern_encoder, pattern_optimizer, pattern_scheduler, use_svi=use_svi,device=device)
     pattern_save_name = args.save_name + '_' + 'pattern_embedding'
-    first_epoch = 20
-    pattern_trainer.train_pattern_contrastive(epochs=20, save_name=pattern_save_name, use_wandb=use_wandb)
+
+    pattern_trainer.train_pattern_contrastive(epochs=first_epoch, save_name=pattern_save_name, use_wandb=use_wandb)
     region_aggregator = RegionEncoder(d_hidden=args.dim, d_head=8).to(device)
     # region_aggregator.to(device)
     region_optimizer = torch.optim.Adam(region_aggregator.parameters(), lr=args.lr, weight_decay=args.weight_decay)
