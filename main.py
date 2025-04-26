@@ -12,6 +12,7 @@ from model.regiondcl import PatternEncoder, RegionEncoder
 from model.trainer import PatternTrainer, RegionTrainer
 import wandb
 import os
+import random
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -36,7 +37,19 @@ def parse_args():
     parser.add_argument('--use_svi', action='store_true', default=False)
     parser.add_argument('--lamb', type=int, default=100)
     parser.add_argument('--first_epoch', type=int, default=20)
+    parser.add_argument('--seed', type=int, default=3407)
     return parser.parse_args()
+
+def setup_seed(seed):
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+        torch.cuda.manual_seed_all(seed)
+    random.seed(seed)
+
 
 
 if __name__ == '__main__':
@@ -50,6 +63,8 @@ if __name__ == '__main__':
     use_wandb = args.use_wandb
     use_svi = args.use_svi
     first_epoch = args.first_epoch
+    setup_seed(args.seed) # reproduct
+
     pattern_encoder = PatternEncoder(d_building=city_data.building_feature_dim,
                                      d_poi=city_data.poi_feature_dim,
                                      d_svi=city_data.svi_emb_dim,
@@ -90,6 +105,6 @@ if __name__ == '__main__':
     embeddings = np.load(f'embeddings/{args.city}/{pattern_save_name}_{first_epoch}.npy')  # load pattern_embedding of stage1
     region_save_name = args.save_name + '_'+ 'RegionDCL'+f'{first_epoch}_'
     region_trainer.train_region_triplet_freeze(epochs=100, embeddings=embeddings, adaptive=not args.fixed, save_name=region_save_name,
-                                               window_sizes=[1000, 2000, 3000], use_wandb=use_wandb, _lambda=args.lamb
+                                               window_sizes=[1000, 2000, 3000], use_wandb=use_wandb, _lambda=args.lamb, first_epoch=first_epoch
                                                )
     print('Training finished. Embeddings have been saved in embeddings/ directory.')

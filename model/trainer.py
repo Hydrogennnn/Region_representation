@@ -152,7 +152,7 @@ class RegionTrainer(object):
 
     def train_region_triplet_freeze(self, epochs, embeddings, save_name, 
                                     adaptive=True, window_sizes=None, use_wandb=False,
-                                    _lambda=100):
+                                    _lambda=100, first_epoch=20):
         if adaptive:
             criterion = adaptive_triplet_loss
         else:
@@ -211,5 +211,5 @@ class RegionTrainer(object):
             if use_wandb:
                 wandb.log({
                     "Region-loss": np.mean(train_losses)
-                }, step=epoch)
+                }, step=epoch+first_epoch)
             self.region_scheduler.step()
