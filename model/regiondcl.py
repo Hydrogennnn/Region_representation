@@ -83,7 +83,8 @@ class PatternEncoder(nn.Module):
         if self.use_svi:
             self.svi_projector = nn.Sequential(
                 nn.Linear(d_svi, d_hidden),
-                nn.ReLU()  # 手动添加激活函数
+                nn.ReLU(),  # 手动添加激活函数
+                nn.LayerNorm(normalized_shape=d_hidden)
             )
             
         self.building_encoder = DistanceBiasedTransformer(d_model=d_hidden,

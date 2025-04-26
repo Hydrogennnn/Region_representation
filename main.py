@@ -69,7 +69,7 @@ if __name__ == '__main__':
     if use_wandb:
         wandb.init(
             project = 'Region',
-            name = f'RegionDCL-dim{args.dim}',
+            name = args.save_name,
             config=vars(args)
         )
     # Encode building pattern
