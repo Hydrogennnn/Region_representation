@@ -75,7 +75,7 @@ class PatternEncoder(nn.Module):
                  building_head, building_layers,
                  building_dropout, building_activation, building_distance_penalty,
                  bottleneck_head, bottleneck_layers, bottleneck_dropout, bottleneck_activation,
-                 use_svi=False):
+                 use_svi=False, svi_drop=0.0):
         super(PatternEncoder, self).__init__()
         self.building_projector = nn.Linear(d_building, d_hidden)
         self.poi_projector = nn.Linear(d_poi, d_hidden)
@@ -84,7 +84,8 @@ class PatternEncoder(nn.Module):
             self.svi_projector = nn.Sequential(
                 nn.Linear(d_svi, d_hidden),
                 nn.ReLU(),  # 手动添加激活函数
-                nn.LayerNorm(normalized_shape=d_hidden)
+                # nn.LayerNorm(normalized_shape=d_hidden)
+                nn.Dropout(p=svi_drop)
             )
             
         self.building_encoder = DistanceBiasedTransformer(d_model=d_hidden,
