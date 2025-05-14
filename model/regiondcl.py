@@ -70,6 +70,33 @@ class DistanceBiasedTransformer(nn.Module):
         return hidden
 
 
+class ProjectionHead(nn.Module):
+    """
+    The projection head is used to
+    transform the space and the time embeddings to the same embedding space with the same dimensionality.
+    """
+    def __init__(self, embedding_dim, projection_dim=256, dropout=0.1):
+        super().__init__()
+        self.projection = nn.Linear(embedding_dim, projection_dim)
+        self.gelu = nn.GELU()  # apply the Gaussian Error Linear Units function
+        self.fc = nn.Linear(projection_dim, projection_dim)
+        self.dropout = nn.Dropout(dropout)
+        self.layer_norm = nn.LayerNorm(projection_dim)  # apply Layer Normalization over a mini-batch of inputs
+
+    def forward(self, x):
+        """
+        :param x: tensor, shape [batch_size, embedding_dim]
+        :return: tensor, shape [batch_size, projection_dim]
+        """
+        projected = self.projection(x)
+        x = self.gelu(projected)
+        x = self.fc(x)
+        x = self.dropout(x)
+        x = x + projected
+        x = self.layer_norm(x)
+        return x
+
+
 class PatternEncoder(nn.Module):
     def __init__(self, d_building, d_poi,d_svi, d_hidden, d_feedforward,
                  building_head, building_layers,
@@ -81,12 +108,13 @@ class PatternEncoder(nn.Module):
         self.poi_projector = nn.Linear(d_poi, d_hidden)
         self.use_svi = use_svi
         if self.use_svi:
-            self.svi_projector = nn.Sequential(
-                nn.Linear(d_svi, d_hidden),
-                nn.ReLU(),  # 手动添加激活函数
-                # nn.LayerNorm(normalized_shape=d_hidden)
-                nn.Dropout(p=svi_drop)
-            )
+            # self.svi_projector = nn.Sequential(
+            #     nn.Linear(d_svi, d_hidden),  # 768, 64
+            #     nn.ReLU(),  # 手动添加激活函数
+            #     # nn.LayerNorm(normalized_shape=d_hidden)
+            #     nn.Dropout(p=svi_drop)
+            # )
+            self.svi_projector = ProjectionHead(d_svi, d_hidden)
             
         self.building_encoder = DistanceBiasedTransformer(d_model=d_hidden,
                                                           nhead=building_head,

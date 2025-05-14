@@ -162,7 +162,7 @@ def land_use_inference(test_path, baseline_embeddings, raw_labels, split, repeat
         raw_embeddings = pkl.load(f)
 
     raw_embeddings = {k: v for k, v in raw_embeddings.items() if k in baseline_embeddings}
-    embeddings = np.zeros((len(raw_embeddings), 128), dtype=np.float32)
+    embeddings = np.zeros((len(raw_embeddings), 64), dtype=np.float32)
     labels = np.zeros((len(raw_embeddings), len(raw_labels[0]['land_use'])), dtype=np.float32)
     for i, (key, value) in enumerate(raw_embeddings.items()):
         embeddings[i] = value

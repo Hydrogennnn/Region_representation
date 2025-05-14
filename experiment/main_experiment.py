@@ -75,13 +75,20 @@ if __name__ == '__main__':
         # test_paths['RegionDCL'] = 'embeddings/{}/RegionDCL_20.pkl'.format(city)
         lamb = [1, 5, 10, 20, 50, 100, 200, 300, 500]
         # lamb = [100]
-        for i in lamb:
-            test_paths[f'RegionDCL-lamb{i}'] = f'embeddings/{city}/dim128_lamb{i}_RegionDCL50.pkl'  #dim128_lamb100_RegionDCL20
+        # for i in lamb:
+        #     test_paths[f'RegionDCL-lamb{i}'] = f'embeddings/{city}/dim128_lamb{i}_RegionDCL50.pkl'  #dim128_lamb100_RegionDCL20
+        
+        # for i in lamb:
+        #     for j in range(10,110, 10):
+        #         test_paths[f'RegionDCL-WITH-SVI-Lambda{i}-fepoch{j}'] = f'embeddings/{city}/grid_lambsvidim128-lambda{i}-lr0.0001_RegionDCL20_{j}.pkl'
         # for i in range(10, 110, 10):
         #     test_paths[f'RegionDCL_WITH_SVI{i}']= f'embeddings/{city}/dim128_RegionDCL{i}.pkl'
         # for i in range(10, 60, 10):
         #     test_paths[f'RegionDCL_WITH_SVI{i}']= f'embeddings/{city}/svi128_RegionDCL{i}.pkl'
+
         
+        for i in range(10, 110, 10): #lnsvidim128-lambda100-lr0.0001_RegionDCL20_40.pkl
+            test_paths[f'RegionDCL-WITH-SEED-{i}'] = f'embeddings/{city}/dim64svi_dim64-lambda100-lr0.0001-svi_drop0-seed3407_RegionDCL20_{i}.pkl'
         # test_paths['RegionDCL_WITH_SVI'] = 'embeddings/{}/RegionDCL_svi_20.pkl'.format(city)
         # test_paths['RegionDCL_SVI_zero'] = 'embeddings/{}/svi_RegionDCL100.pkl'.format(city)
 

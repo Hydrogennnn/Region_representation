@@ -97,7 +97,7 @@ if __name__ == '__main__':
 
     pattern_trainer.train_pattern_contrastive(epochs=first_epoch, save_name=pattern_save_name, use_wandb=use_wandb)
     region_aggregator = RegionEncoder(d_hidden=args.dim, d_head=8).to(device)
-    # region_aggregator.to(device)
+    
     region_optimizer = torch.optim.Adam(region_aggregator.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     region_scheduler = torch.optim.lr_scheduler.StepLR(region_optimizer, step_size=1, gamma=args.gamma)
     region_trainer = RegionTrainer(city_data, pattern_encoder, pattern_optimizer, pattern_scheduler, region_aggregator,
