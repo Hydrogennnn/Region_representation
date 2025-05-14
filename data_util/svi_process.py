@@ -3,7 +3,7 @@ This file is to generate embedding for SVI.
 """
 import os
 import argparse
-
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import geopandas as gpd
@@ -14,6 +14,7 @@ from PIL import Image
 import torch
 from torch.utils.data import DataLoader
 from datasets import load_dataset
+
 
 from svi_utils import *
 
@@ -100,17 +101,68 @@ def main():
         embeddings = torch.load(embedding_path)
         metadata_df = pd.read_csv(metadata_path)
         print("Embeddings & metadata have been loaded!")
-    
-    
-    
-    
-    
-    
-    
-
-
-
 
 
 if __name__=='__main__':
-    main()
+    # 读取CSV文件
+    # df = pd.read_csv('data/processed/Singapore/SVI/svi_sampling_point.csv')  # 替换为你的文件路径
+    #
+    # # 提取X和Y坐标
+    # x = df['POINT_X']
+    # y = df['POINT_Y']
+    #
+    # # 绘制散点图
+    # # plt.figure(figsize=(8, 6))
+    # # plt.scatter(x, y, c='blue', s=1)  # c是颜色，s是点的大小
+    # # plt.xlabel('POINT_X')
+    # # plt.ylabel('POINT_Y')
+    # # plt.title('Scatter Plot of POINT_X and POINT_Y')
+    # # plt.grid(True)
+    # # plt.axis('equal')  # 保持XY轴刻度一致
+    # # plt.show()
+    #
+    # gdf = gpd.GeoDataFrame(
+    #     df, geometry=gpd.points_from_xy(df['POINT_X'], df['POINT_Y']))
+    #
+    # world = gpd.read_file(gpd.datasets.get_path('naturalearth_lowres'))
+    #
+    # ax = world.plot(
+    #     color='white', edgecolor='black', figsize=(30, 30))
+    #
+    # gdf.plot(ax=ax, color='red')
+    # # 设置显示范围为新加坡区域
+    # plt.xlim(103.6, 104.1)
+    # plt.ylim(1.2, 1.5)
+    #
+    # plt.show()
+
+    # 读取CSV中的采样点
+    df = pd.read_csv('data/processed/Singapore/SVI/svi_sampling_point.csv')
+    gdf = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df['POINT_X'], df['POINT_Y']), crs='EPSG:4326')
+
+    # 读取新加坡城市边界（Shapefile）
+    boundary = gpd.read_file('data/projected/Singapore/boundary/Singapore.shp')
+
+    # 如果边界数据不是WGS84（EPSG:4326），需投影转换（常见为EPSG:3414）
+    if boundary.crs != "EPSG:4326":
+        boundary = boundary.to_crs("EPSG:4326")
+
+    # 绘图
+    fig, ax = plt.subplots(figsize=(10, 10))
+    boundary.plot(ax=ax, edgecolor='black', facecolor='none', linewidth=1)
+    gdf.plot(ax=ax, color='red', markersize=0.1)
+
+    # 设置坐标轴范围（聚焦新加坡）
+    plt.xlim(103.6, 104.1)
+    plt.ylim(1.2, 1.5)
+
+    plt.title('SVI Sampling Points in Singapore with City Boundary')
+    plt.xlabel('Longitude')
+    plt.ylabel('Latitude')
+    plt.grid(True)
+    plt.axis('equal')
+    plt.show()
+
+
+
+    # main()

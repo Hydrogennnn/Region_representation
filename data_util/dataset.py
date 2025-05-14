@@ -51,7 +51,7 @@ class CityData(object):
             # Poi outside buildings
             with open(in_path + 'poi.pkl', 'rb') as f:
                 pois = pkl.load(f)
-            self.building_feature_dim = 1 + 2 + self.building_shape_feature.shape[1] + len(buildings[0]['poi'])
+            self.building_feature_dim = 1 + 2 + self.building_shape_feature.shape[1] + len(buildings[0]['poi'])  #area, rotation, building shape, poi
             if with_type:
                 self.building_feature_dim += len(buildings[0]['onehot'])
                 random_path = 'data/processed/{}/random_point_with_type.npy'.format(self.city)

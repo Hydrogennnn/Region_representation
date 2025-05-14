@@ -102,7 +102,7 @@ class PatternEncoder(nn.Module):
                  building_head, building_layers,
                  building_dropout, building_activation, building_distance_penalty,
                  bottleneck_head, bottleneck_layers, bottleneck_dropout, bottleneck_activation,
-                 use_svi=False, svi_drop=0.0):
+                 use_svi=False, svi_drop=0.0, ):
         super(PatternEncoder, self).__init__()
         self.building_projector = nn.Linear(d_building, d_hidden)
         self.poi_projector = nn.Linear(d_poi, d_hidden)
