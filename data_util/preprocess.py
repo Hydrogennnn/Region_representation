@@ -59,7 +59,7 @@ class Preprocess(object):
         4. Attach the pois to buildings
         5. Save them to pickle, and return
         """
-        if not force and os.path.exists(self.building_out_path):
+        if not force and os.path.exists(self.building_out_path): #building and poi already exists!
             print('Loading building from {}'.format(self.building_out_path))
             with open(self.building_out_path, 'rb') as f:
                 building = pkl.load(f)
@@ -111,7 +111,7 @@ class Preprocess(object):
         for b in tqdm(building):
             # sum up all the pois in the building
             b['poi'] = [0] * poi_dim
-            bounds = b['shape'].bounds
+            bounds = b['shape'].bounds  #minx, miny, maxx, maxy
             cx = (bounds[0] + bounds[2]) / 2
             cy = (bounds[1] + bounds[3]) / 2
             height = bounds[3] - bounds[1]
