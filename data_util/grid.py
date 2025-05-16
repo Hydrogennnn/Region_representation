@@ -116,14 +116,14 @@ class Grid(object):
                     self.random_points.append(self.grid[i][j][0])
                     count += 1
         print('Valid random points:', count)
-        # self.plot_random_points()
+        self.plot_random_points()
 
     def plot_random_points(self):
         plt.figure(figsize=(150, 150))
         for building in self.buildings:
             plt.plot(building[0], building[1], 'bo')
         for poi in self.pois:
-            plt.plot(poi[0], poi[1], 'bo')
+            plt.plot(poi[0], poi[1], 'yo')
         for point in self.random_points:
             plt.plot(point[0], point[1], 'ro')
         plt.savefig('random_points.png')
