@@ -19,7 +19,7 @@ from shapely.ops import unary_union
 import time
 
 class CityData(object):
-    def __init__(self, city, random_radius=100, with_type=True, with_random=True, cached_region_path=None,
+    def __init__(self, city, random_radius=100, with_type=True, with_random=True, with_random_svi=True, cached_region_path=None,
                  cached_grid_path=None):
         assert city in ['NYC', 'Singapore']
         self.city = city
@@ -70,6 +70,10 @@ class CityData(object):
             print('Pre-calculating pattern features...')
             with open(in_path + f'segmentation_{random_radius}.pkl', 'rb') as f:
                 raw_patterns = pkl.load(f)
+            svi_data_dir = "data/processed/Singapore/SVI"  # loading embeddings,metadata,svi_pos
+            embeddings = torch.load(os.path.join(svi_data_dir, "svi_emb", "embedding.pt"))
+            metadata = pd.read_csv(os.path.join(svi_data_dir, "svi_emb", "im_metadata.csv"))
+
             for pattern in tqdm(raw_patterns):
                 if with_random:
                     building_num = len(pattern['building']) + len(pattern['random_point'])
@@ -105,25 +109,40 @@ class CityData(object):
                         building_feature[len(pattern['building']) + row, :] = self.random_feature
                     for row, idx in enumerate(pattern['random_point']):
                         xy[len(pattern['building']) + row, :] = self.random_points[idx]
-                
-                #SVI
-                data_dir = "data/processed/Singapore" #loading embeddings,metadata,svi_pos
-                embeddings = torch.load(os.path.join(data_dir, "svi_emb", "embedding.pt"))
-                metadata = pd.read_csv(os.path.join(data_dir, "svi_emb", "im_metadata.csv"))
-                
-                svi_pos = pd.read_csv(os.path.join(data_dir, "SVI", "svi_sampling_point.csv"))#加载pos转换为gpd
-                svi_geom = [Point(pos) for pos in svi_pos[['POINT_X', 'POINT_Y']].values]
-                svi_pos_gdf = gpd.GeoDataFrame(svi_pos['OBJECTID_1'], geometry=svi_geom, crs="EPSG:4326")
-                svi_pos_gdf = svi_pos_gdf.to_crs("EPSG:3414")
-                
-                buildings_geometris = [buildings[idx]['shape'] for idx in pattern['building']]
-                buildings_gdf = gpd.GeoDataFrame(geometry=buildings_geometris, crs="EPSG:3414")
 
-                svi_embedding = self.Pattern_SVI_Embedding(im_emb=embeddings,
-                                                           im_metadata=metadata,
-                                                           svi_pos_gdf=svi_pos_gdf,
-                                                           building_shapes_gdf=buildings_gdf
-                                                           ) 
+                #SVI
+
+                obj_id = pattern['svi_objs']
+                svi_embedding = []
+                assert len(metadata) == embeddings.shape[0]
+
+                for idx, row in tqdm(metadata.iterrows()):
+                    if row['objectid'] in obj_id:
+                        svi_embedding.append(embeddings[idx])
+
+                # random_svi_vector_path = 'data/processed/{}/random_svi_feature.npy'
+                # if os.path.exists(random_svi_vector_path):
+                #     self.random_svi_feature = np.load(random_svi_vector_path)
+                # else :
+                #     self.random_svi_feature = np.random.randn(1, embeddings.shape[0])
+                #     np.save(random_svi_vector_path, self.random_svi_feature)
+
+
+
+
+                # svi_pos = pd.read_csv(os.path.join(data_dir, "SVI", "svi_sampling_point.csv"))#加载pos转换为gpd
+                # svi_geom = [Point(pos) for pos in svi_pos[['POINT_X', 'POINT_Y']].values]
+                # svi_pos_gdf = gpd.GeoDataFrame(svi_pos['OBJECTID_1'], geometry=svi_geom, crs="EPSG:4326")
+                # svi_pos_gdf = svi_pos_gdf.to_crs("EPSG:3414")
+                #
+                # buildings_geometris = [buildings[idx]['shape'] for idx in pattern['building']]
+                # buildings_gdf = gpd.GeoDataFrame(geometry=buildings_geometris, crs="EPSG:3414")
+                #
+                # svi_embedding = self.Pattern_SVI_Embedding(im_emb=embeddings,
+                #                                            im_metadata=metadata,
+                #                                            svi_pos_gdf=svi_pos_gdf,
+                #                                            building_shapes_gdf=buildings_gdf
+                #                                            )
                 self.patterns.append({
                     'building_feature': building_feature,
                     'poi_feature': poi_feature,
@@ -317,6 +336,8 @@ class UnsupervisedPatternDataset(Dataset):
                         poi_feature[:poi_seq_len, i, :] = batch[i]['poi_feature']
                         poi_mask[i, :poi_seq_len] = 0
         svi_emb_size = batch[0]['svi_emb'][0].shape[0]
+        print(batch[0]['svi_emb'])
+        exit()
         svi_embedding = torch.zeros(max_seq_len_limit,batch_size, svi_emb_size)
         for idx, pattern in enumerate(batch):
             svi_emb = pattern['svi_emb'] #Tensor(max_len_limit,d)

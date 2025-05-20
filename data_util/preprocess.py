@@ -4,6 +4,7 @@ import os
 import pickle as pkl
 import rasterio.features
 import geopandas as gpd
+import pandas as pd
 import numpy as np
 from scipy.spatial import KDTree
 from shapely import affinity
@@ -41,12 +42,33 @@ class Preprocess(object):
         self.boundary_in_path = in_path + 'boundary/' + city + '.shp'
         print('Loading boundary from {}'.format(self.boundary_in_path))
         boundary_shapefile = gpd.read_file(self.boundary_in_path)
-        boundary = [boundary_row['geometry'] for index, boundary_row in boundary_shapefile.iterrows()]
+        boundary = \
+            [boundary_row['geometry'] for index, boundary_row in boundary_shapefile.iterrows()]
         if len(boundary) > 1:
             boundary = unary_union(boundary)
         else:
             boundary = boundary[0]
         self.boundary = boundary
+
+        #SVI process
+        self.svi_metafile_path = 'data/processed/Singapore/SVI/svi_sampling_point.csv'
+
+    def get_svi_obj(self):
+        svi_pos = pd.read_csv(self.svi_metafile_path)  # 加载pos转换为gpd
+        svi_geom = [Point(pos) for pos in svi_pos[['POINT_X', 'POINT_Y']].values]
+        svi_pos_gdf = gpd.GeoDataFrame(svi_pos['OBJECTID_1'], geometry=svi_geom, crs="EPSG:4326")
+        svi_pos_gdf = svi_pos_gdf.to_crs("EPSG:3414")
+        self.svis = svi_pos_gdf
+        svi_list = []
+        for idx,p in svi_pos_gdf.iterrows():
+            output = {}
+            output['x'] = p['geometry'].x
+            output['y'] = p['geometry'].y
+            output['obj'] = p['OBJECTID_1']
+            svi_list.append(output)
+        # svi_xy_list = [[p.x, p.y] for p in svi_pos_gdf.geometry]
+        self.svi_list = svi_list
+        return svi_list
 
     def get_building_and_poi(self, force=False):
         """
@@ -144,11 +166,23 @@ class Preprocess(object):
             pkl.dump(result, f, protocol=4)
         return result
 
-    def partition(self, building_list, poi_list, random_point_list, radius, force=False):
-        if not force and os.path.exists(self.segmentation_out_path):
-            with open(self.segmentation_out_path, 'rb') as f:
+    def svi_PDS(self, build_list, svi_list, radius, force=False):
+        svi_pds_out_path = self.out_path + 'svi_pds_' + str(radius) + 'm.pkl'
+        if not force and os.path.exists(svi_pds_out_path):
+            with open(svi_pds_out_path, 'rb') as f:
                 result = pkl.load(f)
             return result
+        grid = Grid(self.boundary, radius, build_list, svi_list)
+        result = grid.poisson_disk_sampling()
+        with open(svi_pds_out_path, 'wb') as f:
+            pkl.dump(result, f, protocol=4)
+        return result
+
+    def partition(self, building_list, poi_list, random_point_list, radius, svi_list, random_svi, force=False):
+        # if not force and os.path.exists(self.segmentation_out_path):
+        #     with open(self.segmentation_out_path, 'rb') as f:
+        #         result = pkl.load(f)
+        #     return result
         print('Partition city data by road network...')
         segmentation_shapefile = gpd.read_file(self.segmentation_in_path)
         segmentation_polygon_list = []
@@ -159,16 +193,22 @@ class Preprocess(object):
         building_loc = [[b['shape'].centroid.x, b['shape'].centroid.y] for b in building_list]
         poi_loc = [[p['x'], p['y']] for p in poi_list]
         random_point_loc = random_point_list
+        svi_loc = [[p['x'], p['y']] for p in svi_list]
+        random_svi_loc = random_svi
         building_tree = KDTree(building_loc)
         poi_tree = KDTree(poi_loc)
         random_point_tree = KDTree(random_point_loc)
+        svi_tree = KDTree(svi_loc)
+        random_svi_tree = KDTree(random_svi_loc)
         for i in trange(len(segmentation_polygon_list)):
             shape = segmentation_polygon_list[i]
             pattern = {
                 'shape': shape,
                 'building': [],
                 'poi': [],
-                'random_point': []
+                'random_point': [],
+                'svi_objs': [],
+                'random_svi_point': []
             }
             # calculate the diameter of the shape
             bounds = shape.bounds
@@ -190,6 +230,16 @@ class Preprocess(object):
             for j in random_point_index:
                 if shape.contains(Point(random_point_loc[j][0], random_point_loc[j][1])):
                     pattern['random_point'].append(j)
+            # find the StreetViewImage in the shape
+            svi_index = svi_tree.query_ball_point([shape.centroid.x, shape.centroid.y], diameter)
+            for j in svi_index:
+                if shape.contains(Point(svi_loc[j][0], svi_loc[j][1])):
+                    pattern['svi_objs'].append(self.svi_list[j]['obj'])
+            # find the Random SVI
+            svi_random_index = random_svi_tree.query_ball_point([shape.centroid.x, shape.centroid.y], diameter)
+            for j in svi_random_index:
+                if shape.contains(Point(random_point_loc[j][0], random_point_loc[j][0])):
+                    pattern['random_svi_point'].append(j)
             # ignore the pattern without any building & random point
             if len(pattern['building']) == 0:
                 continue
@@ -270,15 +320,23 @@ def parse_args():
     return parser.parse_args()
 
 
-if __name__ == '__main__':
+
+
+def main():
     args = parse_args()
     city = args.city
     radius = args.radius
-    assert radius > 50 # Too many sampling points will be too slow
+    assert radius > 50  # Too many sampling points will be too slow
     preprocessor = Preprocess(city)
     building, poi = preprocessor.get_building_and_poi()
     random_point = preprocessor.poisson_disk_sampling(building, poi, radius)
+    svi = preprocessor.get_svi_obj()
+    random_svi = preprocessor.svi_PDS(building, svi, radius)
     preprocessor.rasterize_buildings(building)
-    preprocessor.partition(building, poi, random_point, radius)
+    preprocessor.partition(building, poi, random_point, radius, svi, random_svi)
     print(f'Random Points: {len(random_point)}')
+
+if __name__ == '__main__':
+    main()
+
 
