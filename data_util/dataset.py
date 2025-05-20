@@ -335,17 +335,40 @@ class UnsupervisedPatternDataset(Dataset):
                     else:
                         poi_feature[:poi_seq_len, i, :] = batch[i]['poi_feature']
                         poi_mask[i, :poi_seq_len] = 0
+
+        #SVI
+        max_svi_len = 0
         svi_emb_size = batch[0]['svi_emb'][0].shape[0]
-        print(batch[0]['svi_emb'])
-        exit()
-        svi_embedding = torch.zeros(max_seq_len_limit,batch_size, svi_emb_size)
-        for idx, pattern in enumerate(batch):
-            svi_emb = pattern['svi_emb'] #Tensor(max_len_limit,d)
-            svi_embedding[:,idx,:] = svi_emb
-        
+        for pattern in batch:
+            max_svi_len = max(max_svi_len, len(pattern['svi_emb']))
+        if max_svi_len > max_seq_len_limit:
+            max_svi_len = max_seq_len_limit
+
+        if max_svi_len == 0:
+            svi_feature = None
+            svi_mask = None
+        else:
+            svi_feature = torch.zeros(max_svi_len, batch_size, svi_emb_size)
+            svi_mask = np.ones((batch_size, max_svi_len), dtype=np.bool_)
+            # print(batch[0]['svi_emb'])
+            # exit()
+            for idx, pattern in enumerate(batch):
+                svi_emb_list = pattern['svi_emb'] #list
+                if len(svi_emb_list) > max_seq_len_limit:
+                    choice_idx = np.random.choice(len(svi_emb_list), max_seq_len_limit, replace=False)
+                    cur_svi = svi_emb_list[choice_idx]
+                    cur_svi = torch.cat(cur_svi)
+                    svi_feature[:max_seq_len_limit, idx, :] = cur_svi
+                    svi_mask[idx, :max_seq_len_limit] = 0
+                else:
+                    cur_svi = torch.cat(svi_emb_list)
+                    svi_feature[:len(svi_emb_list), idx, :] = cur_svi
+                    svi_mask[idx, :len(svi_emb_list)] = 0
+
+
         # svi_embedding = torch.zeros(svi_embedding.shape)
 
-        return building_feature, building_mask, xy, poi_feature, poi_mask, svi_embedding
+        return building_feature, building_mask, xy, poi_feature, poi_mask, svi_feature, svi_mask
 
 
 class FreezePatternPretrainDataset(Dataset):

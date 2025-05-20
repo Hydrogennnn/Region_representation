@@ -33,7 +33,7 @@ class PatternTrainer(object):
         self.early_stopping = 10
         self.use_svi = use_svi
 
-    def forward(self, building_feature, building_mask, xy, poi_feature, poi_mask, svi_emb):
+    def forward(self, building_feature, building_mask, xy, poi_feature, poi_mask, svi_emb, svi_mask):
         with torch.cuda.device(self.device):
             torch.cuda.empty_cache()
         building_feature = torch.from_numpy(building_feature).to(self.device)
@@ -43,7 +43,7 @@ class PatternTrainer(object):
         if poi_feature is not None:
             poi_feature = torch.from_numpy(poi_feature).to(self.device)
             poi_mask = torch.from_numpy(poi_mask).to(self.device)
-        return self.model(building_feature, building_mask, xy, poi_feature, poi_mask, svi_emb)
+        return self.model(building_feature, building_mask, xy, poi_feature, poi_mask, svi_emb, svi_mask)
 
     def infonce_loss(self, y_pred, lamda=0.05):
         N = y_pred.shape[0]
@@ -80,8 +80,8 @@ class PatternTrainer(object):
             losses = []
             for data in tqdm_batch:
                 self.optimizer.zero_grad()
-                building_feature, building_mask, xy, poi_feature, poi_mask, svi_emb = data
-                pred = self.forward(building_feature, building_mask, xy, poi_feature, poi_mask, svi_emb) # embedding of each pattern
+                building_feature, building_mask, xy, poi_feature, poi_mask, svi_emb, svi_mask = data
+                pred = self.forward(building_feature, building_mask, xy, poi_feature, poi_mask, svi_emb, svi_mask) # embedding of each pattern
                 loss = criterion(pred)
                 loss.backward()
                 clip_grad_norm_(self.model.parameters(), 1)
