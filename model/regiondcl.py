@@ -108,13 +108,13 @@ class PatternEncoder(nn.Module):
         self.poi_projector = nn.Linear(d_poi, d_hidden)
         self.use_svi = use_svi
         if self.use_svi:
-            # self.svi_projector = nn.Sequential(
-            #     nn.Linear(d_svi, d_hidden),  # 768, 64
-            #     nn.ReLU(),  # 手动添加激活函数
-            #     # nn.LayerNorm(normalized_shape=d_hidden)
-            #     nn.Dropout(p=svi_drop)
-            # )
             self.svi_projector = ProjectionHead(d_svi, d_hidden)
+            # self.svi_projector = nn.Sequential(
+            #     nn.Linear(d_svi, d_hidden),
+            #     # nn.ReLU(),  # 手动添加激活函数
+            #     # nn.LayerNorm(normalized_shape=d_hidden)
+            #     # nn.Dropout(p=svi_drop)
+            # )
             
         self.building_encoder = DistanceBiasedTransformer(d_model=d_hidden,
                                                           nhead=building_head,
@@ -126,26 +126,28 @@ class PatternEncoder(nn.Module):
             nn.TransformerEncoderLayer(d_hidden, nhead=bottleneck_head, dim_feedforward=d_feedforward,
                                        dropout=bottleneck_dropout, activation=bottleneck_activation), bottleneck_layers)
 
-    def forward(self, building_feature, building_mask, xy, poi_feature, poi_mask, svi_emb):
-        origin_feature = self.get_all(building_feature, building_mask, xy, poi_feature, poi_mask)  # (seq_len, batch_size, d)
-        if not self.use_svi:
-            return origin_feature.mean(dim=0)
-        else:
-            svi_emb = self.svi_projector(svi_emb)
-            return torch.cat([origin_feature, svi_emb], dim=0).mean(dim=0)
+    def forward(self, building_feature, building_mask, xy, poi_feature, poi_mask, svi_emb, svi_mask):
+        origin_feature = self.get_all(building_feature, building_mask, xy, poi_feature, poi_mask, svi_emb, svi_mask).mean(dim=0)  # (seq_len, batch_size, d)
+        return origin_feature
+        # if not self.use_svi:
+        #     return origin_feature.mean(dim=0)
+        # else:
+        #     svi_emb = self.svi_projector(svi_emb)
+        #     return torch.cat([origin_feature, svi_emb], dim=0).mean(dim=0)
     
 
-    def get_embedding(self, building_feature, building_mask, xy, poi_feature, poi_mask, svi_emb):
+    def get_embedding(self, building_feature, building_mask, xy, poi_feature, poi_mask, svi_emb, svi_mask):
         # add up the 0-100 dimension of building density to test the performance
         # return self.get_all(building_feature, building_mask, xy, poi_feature, poi_mask).mean(dim=0)
-        origin_feature = self.get_all(building_feature, building_mask, xy, poi_feature, poi_mask)  # (seq_len, batch_size, d)
-        if not self.use_svi:
-            return origin_feature.mean(dim=0)
-        else:
-            svi_emb = self.svi_projector(svi_emb)
-            return torch.cat([origin_feature, svi_emb], dim=0).mean(dim=0)
+        origin_feature = self.get_all(building_feature, building_mask, xy, poi_feature, poi_mask, svi_emb, svi_mask).mean(dim=0)  # (seq_len, batch_size, d)
+        return origin_feature
+        # if not self.use_svi:
+        #     return origin_feature.mean(dim=0)
+        # else:
+        #     svi_emb = self.svi_projector(svi_emb)
+        #     return torch.cat([origin_feature, svi_emb], dim=0).mean(dim=0)
 
-    def get_all(self, building_feature, building_mask, xy, poi_feature, poi_mask):
+    def get_all(self, building_feature, building_mask, xy, poi_feature, poi_mask, svi_emb, svi_mask):
         building_encoding = self.building_projector(building_feature)
         batch_size = building_encoding.shape[1]
         building_loc = xy.transpose(0, 1)
@@ -163,11 +165,22 @@ class PatternEncoder(nn.Module):
             poi_encoding = self.poi_projector(poi_feature)
             encoding_list.append(poi_encoding)
             mask_list.append(poi_mask)
+
+        if self.use_svi and svi_emb is not None:
+            svi_emb = self.svi_projector(svi_emb)
+            encoding_list.append(svi_emb)
+            mask_list.append(svi_mask)
+        
         encoding = torch.cat(encoding_list, dim=0)
         encoding_mask = torch.cat(mask_list, dim=1)
+
+
+
         # bottleneck
         bottleneck_encoding = self.bottleneck(encoding, src_key_padding_mask=encoding_mask) #第二层transformer
         # concatenate bottleneck and bottleneck embedding
+        # print(bottleneck_encoding.shape)
+        # exit()
         return bottleneck_encoding
 
 

@@ -88,7 +88,7 @@ if __name__ == '__main__':
 
         
         for i in range(10, 110, 10): #lnsvidim128-lambda100-lr0.0001_RegionDCL20_40.pkl
-            test_paths[f'RegionDCL-WITH-SEED-{i}'] = f'embeddings/{city}/dim64svi_dim64-lambda100-lr0.0001-svi_drop0-seed3407_RegionDCL20_{i}.pkl'
+            test_paths[f'RegionDCL-WITH-SEED-{i}'] = f'embeddings/{city}/svi_dim64-lambda100-lr0.0001-svi_drop0-seed49_RegionDCL20_{i}.pkl'
         # test_paths['RegionDCL_WITH_SVI'] = 'embeddings/{}/RegionDCL_svi_20.pkl'.format(city)
         # test_paths['RegionDCL_SVI_zero'] = 'embeddings/{}/svi_RegionDCL100.pkl'.format(city)
 

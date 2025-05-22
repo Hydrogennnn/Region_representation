@@ -11,6 +11,7 @@ import geopandas as gpd
 import numpy as np
 from scipy.spatial import KDTree
 from torch.utils.data import Dataset
+from collections import defaultdict
 from shapely.geometry import Point
 from tqdm import tqdm
 import torch
@@ -35,7 +36,7 @@ class CityData(object):
             with open(cached_pattern_path, 'rb') as f:
                 self.patterns = pkl.load(f)
                 self.building_feature_dim = self.patterns[0]['building_feature'].shape[1]
-                self.svi_emb_dim = self.patterns[0]["svi_emb"].shape[1]
+                self.svi_emb_dim = 768
                 for pattern in self.patterns:
                     if pattern['poi_feature'] is not None:
                         self.poi_feature_dim = pattern['poi_feature'].shape[1]
@@ -57,6 +58,14 @@ class CityData(object):
                 random_path = 'data/processed/{}/random_point_with_type.npy'.format(self.city)
             else:
                 random_path = 'data/processed/{}/random_point.npy'.format(self.city)
+            
+            if with_random_svi:
+                random_svi_path = 'data/processed/{}/random_svi_feature.npy'.format(self.city)
+                if os.path.exists(random_svi_path):
+                    self.random_svi_feature = np.load(random_svi_path)
+                else:
+                    self.random_svi_feature = np.random.randn(768)
+                    np.save(random_svi_path, self.random_svi_feature)
             if os.path.exists(random_path):
                 self.random_feature = np.load(random_path)
             if not os.path.exists(random_path) or self.random_feature.shape[1] != self.building_feature_dim:
@@ -70,9 +79,18 @@ class CityData(object):
             print('Pre-calculating pattern features...')
             with open(in_path + f'segmentation_{random_radius}.pkl', 'rb') as f:
                 raw_patterns = pkl.load(f)
-            svi_data_dir = "data/processed/Singapore/SVI"  # loading embeddings,metadata,svi_pos
+            print("Process SVI...")
+            svi_data_dir = "data/processed/Singapore/"  # loading embeddings,metadata,svi_pos
             embeddings = torch.load(os.path.join(svi_data_dir, "svi_emb", "embedding.pt"))
             metadata = pd.read_csv(os.path.join(svi_data_dir, "svi_emb", "im_metadata.csv"))
+            assert len(metadata) == embeddings.shape[0]
+            
+            svi_emb_per_object = defaultdict(list)
+            for idx in tqdm(range(len(metadata))):
+                cur_id = metadata.loc[idx]['objectid']
+                svi_emb_per_object[cur_id].append(embeddings[idx])
+            
+            print(f"Total num of SVI:{len(metadata)}")
 
             for pattern in tqdm(raw_patterns):
                 if with_random:
@@ -114,12 +132,25 @@ class CityData(object):
 
                 obj_id = pattern['svi_objs']
                 svi_embedding = []
-                assert len(metadata) == embeddings.shape[0]
+                
 
-                for idx, row in tqdm(metadata.iterrows()):
-                    if row['objectid'] in obj_id:
-                        svi_embedding.append(embeddings[idx])
+                # for idx, row in metadata.iterrows():
+                    # if row['objectid'] in obj_id:
+                    #     svi_embedding.append(embeddings[idx])
+                for id in obj_id:
+                    svi_embedding.extend(svi_emb_per_object[id])
+                
+                if with_random_svi:
+                    random_svi = pattern['random_svi_point']
+                    for p in random_svi:
+                        svi_embedding.append(torch.from_numpy(self.random_svi_feature))
 
+
+                if len(svi_embedding) > 0:
+                    svi_embedding = torch.stack(svi_embedding, dim=0)
+                else:
+                    svi_embedding = None
+                # print(len(svi_embedding))
                 # random_svi_vector_path = 'data/processed/{}/random_svi_feature.npy'
                 # if os.path.exists(random_svi_vector_path):
                 #     self.random_svi_feature = np.load(random_svi_vector_path)
@@ -335,17 +366,43 @@ class UnsupervisedPatternDataset(Dataset):
                     else:
                         poi_feature[:poi_seq_len, i, :] = batch[i]['poi_feature']
                         poi_mask[i, :poi_seq_len] = 0
-        svi_emb_size = batch[0]['svi_emb'][0].shape[0]
-        print(batch[0]['svi_emb'])
-        exit()
-        svi_embedding = torch.zeros(max_seq_len_limit,batch_size, svi_emb_size)
-        for idx, pattern in enumerate(batch):
-            svi_emb = pattern['svi_emb'] #Tensor(max_len_limit,d)
-            svi_embedding[:,idx,:] = svi_emb
-        
+
+        #SVI
+        max_svi_len = 0
+        svi_emb_size = 768
+        for pattern in batch:
+            if pattern['svi_emb'] is not None:
+                max_svi_len = max(max_svi_len, len(pattern['svi_emb']))
+        if max_svi_len > max_seq_len_limit:
+            max_svi_len = max_seq_len_limit
+
+        if max_svi_len == 0:
+            svi_feature = None
+            svi_mask = None
+        else:
+            svi_feature = torch.zeros(max_svi_len, batch_size, svi_emb_size)
+            svi_mask = np.ones((batch_size, max_svi_len), dtype=np.bool_)
+            # print(batch[0]['svi_emb'])
+            # exit()
+            for idx, pattern in enumerate(batch):
+                svi_emb = pattern['svi_emb'] #Tensor(len, d)
+                if svi_emb is None:
+                    continue
+                svi_cnt = svi_emb.shape[0]
+                if svi_cnt > max_seq_len_limit:
+                    choice_idx = torch.Tensor(np.random.choice(svi_cnt, max_seq_len_limit, replace=False)).long()
+                    cur_svi = svi_emb[choice_idx]
+                    svi_feature[:max_seq_len_limit, idx, :] = cur_svi
+                    svi_mask[idx, :max_seq_len_limit] = 0
+                else:
+                    cur_svi = svi_emb
+                    svi_feature[:svi_cnt, idx, :] = cur_svi
+                    svi_mask[idx, :svi_cnt] = 0
+
+
         # svi_embedding = torch.zeros(svi_embedding.shape)
 
-        return building_feature, building_mask, xy, poi_feature, poi_mask, svi_embedding
+        return building_feature, building_mask, xy, poi_feature, poi_mask, svi_feature, svi_mask
 
 
 class FreezePatternPretrainDataset(Dataset):

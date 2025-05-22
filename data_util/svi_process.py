@@ -18,6 +18,7 @@ from datasets import load_dataset
 
 from svi_utils import *
 
+os.environ['HF_ENDPOINT'] = 'https://hf-mirror.com'
 
 class SVIEncoder():
     def __init__(self, gpu=-1):
@@ -75,7 +76,7 @@ def main():
     save_dir = os.path.join(data_dir, args.sav_dir)
 
     # Dump `objectid` and `angle`
-    metadata_path = os.path.join(data_dir, 'im_metadata.csv')
+    metadata_path = os.path.join(save_dir, 'im_metadata.csv')
         
 
     #Generate Embedding & metadata
@@ -136,33 +137,33 @@ if __name__=='__main__':
     #
     # plt.show()
 
-    # 读取CSV中的采样点
-    df = pd.read_csv('data/processed/Singapore/SVI/svi_sampling_point.csv')
-    gdf = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df['POINT_X'], df['POINT_Y']), crs='EPSG:4326')
+    # # 读取CSV中的采样点
+    # df = pd.read_csv('data/processed/Singapore/SVI/svi_sampling_point.csv')
+    # gdf = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df['POINT_X'], df['POINT_Y']), crs='EPSG:4326')
 
-    # 读取新加坡城市边界（Shapefile）
-    boundary = gpd.read_file('data/projected/Singapore/boundary/Singapore.shp')
+    # # 读取新加坡城市边界（Shapefile）
+    # boundary = gpd.read_file('data/projected/Singapore/boundary/Singapore.shp')
 
-    # 如果边界数据不是WGS84（EPSG:4326），需投影转换（常见为EPSG:3414）
-    if boundary.crs != "EPSG:4326":
-        boundary = boundary.to_crs("EPSG:4326")
+    # # 如果边界数据不是WGS84（EPSG:4326），需投影转换（常见为EPSG:3414）
+    # if boundary.crs != "EPSG:4326":
+    #     boundary = boundary.to_crs("EPSG:4326")
 
-    # 绘图
-    fig, ax = plt.subplots(figsize=(10, 10))
-    boundary.plot(ax=ax, edgecolor='black', facecolor='none', linewidth=1)
-    gdf.plot(ax=ax, color='red', markersize=0.1)
+    # # 绘图
+    # fig, ax = plt.subplots(figsize=(10, 10))
+    # boundary.plot(ax=ax, edgecolor='black', facecolor='none', linewidth=1)
+    # gdf.plot(ax=ax, color='red', markersize=0.1)
 
-    # 设置坐标轴范围（聚焦新加坡）
-    plt.xlim(103.6, 104.1)
-    plt.ylim(1.2, 1.5)
+    # # 设置坐标轴范围（聚焦新加坡）
+    # plt.xlim(103.6, 104.1)
+    # plt.ylim(1.2, 1.5)
 
-    plt.title('SVI Sampling Points in Singapore with City Boundary')
-    plt.xlabel('Longitude')
-    plt.ylabel('Latitude')
-    plt.grid(True)
-    plt.axis('equal')
-    plt.show()
+    # plt.title('SVI Sampling Points in Singapore with City Boundary')
+    # plt.xlabel('Longitude')
+    # plt.ylabel('Latitude')
+    # plt.grid(True)
+    # plt.axis('equal')
+    # plt.show()
 
 
 
-    # main()
+    main()

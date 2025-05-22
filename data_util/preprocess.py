@@ -238,7 +238,7 @@ class Preprocess(object):
             # find the Random SVI
             svi_random_index = random_svi_tree.query_ball_point([shape.centroid.x, shape.centroid.y], diameter)
             for j in svi_random_index:
-                if shape.contains(Point(random_point_loc[j][0], random_point_loc[j][0])):
+                if shape.contains(Point(random_point_loc[j][0], random_point_loc[j][1])):
                     pattern['random_svi_point'].append(j)
             # ignore the pattern without any building & random point
             if len(pattern['building']) == 0:
