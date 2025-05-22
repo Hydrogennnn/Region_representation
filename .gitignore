@@ -175,3 +175,4 @@ data/processed/Singapore/svi_emb/
 /embeddings/
 /wandb/
 /baselines/
+/data_util/clip-vit-large-patch14/
