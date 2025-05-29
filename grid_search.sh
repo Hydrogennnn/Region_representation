@@ -1,6 +1,6 @@
-for x in 0.0 0.1 0.2 0.3 0.4; do
-    echo "Running with svi_drop = $x"
-    python main.py --save_name "grid_bndrop" --dim 64 --use_wandb --use_svi --bottleneck_dropout "$x"
+for x in 50 75 100 125 150 175; do
+    echo "Running with radius = $x"
+    python main.py --save_name "grid_radius" --dim 64 --use_wandb --use_svi --radius "$x"
 done
 
 

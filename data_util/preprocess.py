@@ -23,8 +23,6 @@ from grid import Grid
     - Group the buildings and the POIs according to the patterns
     - Group the patterns according to the regions
 """
-
-
 class Preprocess(object):
     def __init__(self, city):
         in_path = 'data/projected/{}/'.format(city)
@@ -316,7 +314,7 @@ class Preprocess(object):
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--city', type=str, default='Singapore', help='city name, can be Singapore or NYC')
-    parser.add_argument('--radius', type=float, default=100, help='radius of the Poisson Disk Sampling')
+    parser.add_argument('--radius', type=int, default=100, help='radius of the Poisson Disk Sampling')
     return parser.parse_args()
 
 
@@ -326,7 +324,7 @@ def main():
     args = parse_args()
     city = args.city
     radius = args.radius
-    assert radius > 50  # Too many sampling points will be too slow
+    assert radius >= 50  # Too many sampling points will be too slow
     preprocessor = Preprocess(city)
     building, poi = preprocessor.get_building_and_poi()
     random_point = preprocessor.poisson_disk_sampling(building, poi, radius)
