@@ -86,8 +86,8 @@ if __name__ == '__main__':
         # for i in range(10, 60, 10):
         #     test_paths[f'RegionDCL_WITH_SVI{i}']= f'embeddings/{city}/svi128_RegionDCL{i}.pkl'
 
-
-        for drop in range(0.0, 0.5, 0.1):
+        drops = [0.0, 0.1, 0.2, 0.3, 0.4]
+        for drop in drops:
             for j in range(10, 100, 10):
                 test_paths[f'Drop{drop}-epoch{j}'] = f'embeddings/{city}/grid_bndropsvi_dim64-lambda100-lr0.0001-svi_drop0.1-bndrop{drop}-seed3407_RegionDCL20_{j}.pkl'
         
