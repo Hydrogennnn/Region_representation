@@ -35,7 +35,7 @@ def parse_args():
     parser.add_argument('--save_name', type=str, default='')
     parser.add_argument('--use_wandb', action='store_true', default=False)
     parser.add_argument('--use_svi', action='store_true', default=False)
-    parser.add_argument('--svi_drop', type=float, default=0)
+    parser.add_argument('--svi_drop', type=float, default=0.1)
     parser.add_argument('--lamb', type=int, default=100)
     parser.add_argument('--first_epoch', type=int, default=20)
     parser.add_argument('--seed', type=int, default=3407)
@@ -59,7 +59,8 @@ if __name__ == '__main__':
     city_data = CityData(args.city, with_random=not args.no_random)
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     print('Use:', device)
-    args.save_name += ("svi_" if args.use_svi else "") + f"dim{args.dim}-lambda{args.lamb}-lr{args.lr}-svi_drop{args.svi_drop}-seed{args.seed}"
+    args.save_name += ("svi_" if args.use_svi else "") + \
+        f"dim{args.dim}-lambda{args.lamb}-lr{args.lr}-svi_drop{args.svi_drop}-bndrop{args.bottleneck_dropout}-seed{args.seed}"
 
     use_wandb = args.use_wandb
     use_svi = args.use_svi

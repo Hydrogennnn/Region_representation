@@ -1,6 +1,6 @@
 for x in 0.0 0.1 0.2 0.3 0.4; do
     echo "Running with svi_drop = $x"
-    python main.py --save_name "grid_drop" --dim 128 --use_wandb --use_svi --svi_drop "$x"
+    python main.py --save_name "grid_bndrop" --dim 64 --use_wandb --use_svi --bottleneck_dropout "$x"
 done
 
 

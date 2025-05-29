@@ -108,7 +108,7 @@ class PatternEncoder(nn.Module):
         self.poi_projector = nn.Linear(d_poi, d_hidden)
         self.use_svi = use_svi
         if self.use_svi:
-            self.svi_projector = ProjectionHead(d_svi, d_hidden)
+            self.svi_projector = ProjectionHead(d_svi, d_hidden, svi_drop)
             # self.svi_projector = nn.Sequential(
             #     nn.Linear(d_svi, d_hidden),
             #     # nn.ReLU(),  # 手动添加激活函数
