@@ -316,7 +316,7 @@ class Preprocess(object):
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--city', type=str, default='Singapore', help='city name, can be Singapore or NYC')
-    parser.add_argument('--radius', type=float, default=100, help='radius of the Poisson Disk Sampling')
+    parser.add_argument('--radius', type=int, default=100, help='radius of the Poisson Disk Sampling')
     return parser.parse_args()
 
 

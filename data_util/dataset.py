@@ -32,11 +32,11 @@ class CityData(object):
             os.makedirs(cache_dir)
         cached_pattern_path = 'cache/pattern_{}_{}_'.format(city, random_radius) + (
             'with_type' if with_type else '') + ('_no_random' if not with_random else '') + '.pkl'
+        self.svi_emb_dim = 768
         if os.path.exists(cached_pattern_path):
             with open(cached_pattern_path, 'rb') as f:
                 self.patterns = pkl.load(f)
                 self.building_feature_dim = self.patterns[0]['building_feature'].shape[1]
-                self.svi_emb_dim = 768
                 for pattern in self.patterns:
                     if pattern['poi_feature'] is not None:
                         self.poi_feature_dim = pattern['poi_feature'].shape[1]
