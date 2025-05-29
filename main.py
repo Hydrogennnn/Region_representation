@@ -39,6 +39,7 @@ def parse_args():
     parser.add_argument('--lamb', type=int, default=100)
     parser.add_argument('--first_epoch', type=int, default=20)
     parser.add_argument('--seed', type=int, default=3407)
+    parser.add_argument('--radius', type=int, default=100)
     return parser.parse_args()
 
 def setup_seed(seed):
@@ -56,11 +57,11 @@ def setup_seed(seed):
 if __name__ == '__main__':
     os.environ["CUDA_VISIBLE_DEVICES"] = "2"
     args = parse_args()
-    city_data = CityData(args.city, with_random=not args.no_random)
+    city_data = CityData(args.city, with_random=not args.no_random, random_radius=args.radius)
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     print('Use:', device)
     args.save_name += ("svi_" if args.use_svi else "") + \
-        f"dim{args.dim}-lambda{args.lamb}-lr{args.lr}-svi_drop{args.svi_drop}-bndrop{args.bottleneck_dropout}-seed{args.seed}"
+        f"dim{args.dim}-lambda{args.lamb}-lr{args.lr}-svi_drop{args.svi_drop}-bndrop{args.bottleneck_dropout}-r{args.radius}-seed{args.seed}"
 
     use_wandb = args.use_wandb
     use_svi = args.use_svi
