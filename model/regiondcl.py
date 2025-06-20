@@ -186,6 +186,8 @@ class PatternEncoder(nn.Module):
         mask_list = [building_mask]
 
         if poi_feature and self.use_svi:
+            poi_feature = self.poi_projector(poi_feature)
+            svi_emb = self.svi_projector(svi_emb)
             poi_svi_encoding = self.cross_attn(building_encoding, poi_feature, svi_emb, building_mask)
             encoding_list.append(poi_svi_encoding)
             mask_list.append(poi_mask)
