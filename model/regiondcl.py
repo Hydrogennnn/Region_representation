@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from model.biased_attention import BiasedMultiheadAttention
+from RegionMHA import TwoWayCrossAttention
 
 EPS = 1e-15
 
@@ -125,10 +126,11 @@ class PatternEncoder(nn.Module):
         self.bottleneck = nn.TransformerEncoder(
             nn.TransformerEncoderLayer(d_hidden, nhead=bottleneck_head, dim_feedforward=d_feedforward,
                                        dropout=bottleneck_dropout, activation=bottleneck_activation), bottleneck_layers)
-        self.svi_building_cross_atten = nn.MultiheadAttention(embed_dim=d_hidden,
-                                                              num_heads=8)
-        self.poi_building_cross_atten = nn.MultiheadAttention(embed_dim=d_hidden,
-                                                              num_heads=8)
+        # self.svi_building_cross_atten = nn.MultiheadAttention(embed_dim=d_hidden,
+        #                                                       num_heads=8)
+        # self.poi_building_cross_atten = nn.MultiheadAttention(embed_dim=d_hidden,
+        #                                                       num_heads=8)
+        self.cross_attn = TwoWayCrossAttention(embed_dim=d_hidden, num_heads=8)
 
     def forward(self, building_feature, building_mask, xy, poi_feature, poi_mask, svi_emb, svi_mask):
         origin_feature = self.get_all(building_feature, building_mask, xy, poi_feature, poi_mask, svi_emb, svi_mask).mean(dim=0)  # (seq_len, batch_size, d)
@@ -180,20 +182,30 @@ class PatternEncoder(nn.Module):
         # encoding_mask = torch.cat(mask_list, dim=1)
         #============>
         # Dual Cross Attention
-        encoding_list = []
-        mask_list = []
+        encoding_list = [building_encoding]
+        mask_list = [building_mask]
 
-        if poi_feature is not None:
-            poi_encoding = self.poi_projector(poi_feature)
-            poi_encoding = self.poi_building_cross_atten(poi_encoding, building_encoding, building_encoding, key_padding_mask=building_mask)
-            encoding_list.append(poi_encoding)
+        if poi_feature and self.use_svi:
+            poi_svi_encoding = self.cross_attn(building_encoding, poi_feature, svi_emb, building_mask)
+            encoding_list.append(poi_svi_encoding)
             mask_list.append(poi_mask)
-
-        if self.use_svi and svi_emb is not None:
-            svi_emb = self.svi_projector(svi_emb)
-            svi_emb = self.svi_building_cross_atten(svi_emb, building_encoding, building_encoding, key_padding_mask=building_mask)
-            encoding_list.append(svi_emb)
             mask_list.append(svi_mask)
+        else:
+            if poi_feature is None:
+                print("poi is None")
+            else:
+                print("svi is None")
+        # if poi_feature is not None:
+        #     poi_encoding = self.poi_projector(poi_feature)
+        #     poi_encoding = self.cross_attn(poi_encoding, building_encoding, building_encoding, key_padding_mask=building_mask)
+        #     encoding_list.append(poi_encoding)
+        #     mask_list.append(poi_mask)
+        #
+        # if self.use_svi and svi_emb is not None:
+        #     svi_emb = self.svi_projector(svi_emb)
+        #     svi_emb = self.svi_building_cross_atten(svi_emb, building_encoding, building_encoding, key_padding_mask=building_mask)
+        #     encoding_list.append(svi_emb)
+        #     mask_list.append(svi_mask)
 
 
         encoding = torch.cat(encoding_list, dim=0)
