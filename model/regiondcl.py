@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from model.biased_attention import BiasedMultiheadAttention
-from RegionMHA import TwoWayCrossAttention
+from .RegionMHA import RegionMHA
 
 EPS = 1e-15
 
@@ -130,7 +130,7 @@ class PatternEncoder(nn.Module):
         #                                                       num_heads=8)
         # self.poi_building_cross_atten = nn.MultiheadAttention(embed_dim=d_hidden,
         #                                                       num_heads=8)
-        self.cross_attn = TwoWayCrossAttention(embed_dim=d_hidden, num_heads=8)
+        self.cross_attn = RegionMHA(d_model=d_hidden, num_heads=8)
 
     def forward(self, building_feature, building_mask, xy, poi_feature, poi_mask, svi_emb, svi_mask):
         origin_feature = self.get_all(building_feature, building_mask, xy, poi_feature, poi_mask, svi_emb, svi_mask).mean(dim=0)  # (seq_len, batch_size, d)
@@ -188,8 +188,10 @@ class PatternEncoder(nn.Module):
         if poi_feature and self.use_svi:
             poi_feature = self.poi_projector(poi_feature)
             svi_emb = self.svi_projector(svi_emb)
-            poi_svi_encoding = self.cross_attn(building_encoding, poi_feature, svi_emb, building_mask)
-            encoding_list.append(poi_svi_encoding)
+            # poi_svi_encoding = self.cross_attn(building_encoding, poi_feature, svi_emb, building_mask)
+            poi_attn, svi_attn = self.cross_attn(poi_feature, svi_emb, building_encoding, building_encoding, building_mask)
+            encoding_list.append(poi_attn)
+            encoding_list.append(svi_attn)
             mask_list.append(poi_mask)
             mask_list.append(svi_mask)
         else:
