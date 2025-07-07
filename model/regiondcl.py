@@ -185,7 +185,7 @@ class PatternEncoder(nn.Module):
         encoding_list = [building_encoding]
         mask_list = [building_mask]
 
-        if poi_feature and self.use_svi:
+        if poi_feature is not None and self.use_svi:
             poi_feature = self.poi_projector(poi_feature)
             svi_emb = self.svi_projector(svi_emb)
             # poi_svi_encoding = self.cross_attn(building_encoding, poi_feature, svi_emb, building_mask)
@@ -199,6 +199,7 @@ class PatternEncoder(nn.Module):
                 print("poi is None")
             else:
                 print("svi is None")
+            exit()
         # if poi_feature is not None:
         #     poi_encoding = self.poi_projector(poi_feature)
         #     poi_encoding = self.cross_attn(poi_encoding, building_encoding, building_encoding, key_padding_mask=building_mask)
