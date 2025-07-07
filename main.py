@@ -10,7 +10,7 @@ import torch
 from data_util.dataset import CityData
 from model.regiondcl import PatternEncoder, RegionEncoder
 from model.trainer import PatternTrainer, RegionTrainer
-import wandb
+import swanlab
 import os
 import random
 
@@ -86,7 +86,7 @@ if __name__ == '__main__':
                                      svi_drop=args.svi_drop).to(device)
     
     if use_wandb:
-        wandb.init(
+        swanlab.init(
             project = 'Region',
             name = args.save_name,
             config=vars(args)

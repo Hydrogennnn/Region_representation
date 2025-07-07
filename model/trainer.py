@@ -9,11 +9,13 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 import torch.utils.data
+import random
 from torch.nn.utils import clip_grad_norm_
 from tqdm import tqdm
-import wandb
+import swanlab
 from data_util.dataset import UnsupervisedPatternDataset, FreezePatternForwardDataset, FreezePatternPretrainDataset
 from model.adaptive_triplet import adaptive_triplet_loss, triplet_loss
+from experiment.evaluator import land_use_inference
 
 '''
     Trainer for RegionDCL
@@ -91,7 +93,7 @@ class PatternTrainer(object):
                 losses.append(loss.item())
             print('Epoch {}: InfoNCE Loss {}'.format(epoch, np.mean(losses)))
             if use_wandb:
-                wandb.log({
+                swanlab.log({
                     'pattern-loss': np.mean(losses)
                 },step=epoch)
             self.scheduler.step()
@@ -151,6 +153,37 @@ class RegionTrainer(object):
         with open(path, 'wb') as f:
             pkl.dump(embeddings, f)
 
+    def eval_per_epoch(self, loader, baseline_embeddings, raw_labels):
+        # 保存所有状态
+        rng_state = {
+            'np': np.random.get_state(),
+            'torch_cpu': torch.get_rng_state(),
+            'torch_cuda': torch.cuda.get_rng_state_all() if torch.cuda.is_available() else None,
+            'py_random': random.getstate()
+        }
+        self.region_model.eval()
+        embeddings = {}
+        with torch.no_grad():
+            for data in loader:
+                for key, pattern in data:
+                    tensor = torch.from_numpy(np.vstack(pattern)).to(self.device)
+                    embeddings[key] = self.region_model.get_embedding(tensor).cpu().numpy()
+        # [average_l1, std_l1, average_kl_div, std_kl_div, average_cos, std_cos]
+        result = land_use_inference(embeddings, baseline_embeddings, raw_labels, [0.6,0.2,0.2], 10)
+
+        self.region_model.train()
+        # 恢复 NumPy
+        np.random.set_state(rng_state['np'])
+        # 恢复 PyTorch
+        torch.set_rng_state(rng_state['torch_cpu'])
+        if torch.cuda.is_available():
+            torch.cuda.set_rng_state_all(rng_state['torch_cuda'])
+        # 恢复 Python random
+        random.setstate(rng_state['py_random'])
+
+        return result
+
+
     def train_region_triplet_freeze(self, epochs, embeddings, save_name, 
                                     adaptive=True, window_sizes=None, use_wandb=False,
                                     _lambda=100, first_epoch=20):
@@ -173,6 +206,13 @@ class RegionTrainer(object):
         train_loaders = [torch.utils.data.DataLoader(train_dataset, batch_size=1, shuffle=True,
                                                      collate_fn=FreezePatternPretrainDataset.collate_fn) for
                          train_dataset in train_datasets]
+
+        baseline_path = 'baselines/{}_doc2vec_grid.pkl'.format('Singapore')
+        with open(baseline_path, 'rb') as f:
+            baseline_embeddings = pkl.load(f)
+        with open('data/processed/' + 'Singapore' + '/downstream_region.pkl', 'rb') as f:
+            raw_labels = pkl.load(f)
+
         for epoch in range(1, epochs+1):
             train_losses = []
             self.region_model.train()
@@ -209,8 +249,14 @@ class RegionTrainer(object):
             if epoch > 0 and epoch % 10 == 0:
                 self.save_embedding_freeze(save_path + save_name + str(epoch) + '.pkl', test_loader)
             print('Epoch {}, Tiplet Loss: {}'.format(epoch, np.mean(train_losses)))
+            # # [average_l1, std_l1, average_kl_div, std_kl_div, average_cos, std_cos]
+            eval_res = self.eval_per_epoch(test_loader, baseline_embeddings, raw_labels)
             if use_wandb:
-                wandb.log({
-                    "Region-loss": np.mean(train_losses)
+                swanlab.log({
+                    "Region-loss": np.mean(train_losses),
+                    "l1": eval_res[0],
+                    "kl_div": eval_res[2],
+                    "cos": eval_res[4]
                 }, step=epoch+first_epoch)
             self.region_scheduler.step()
+

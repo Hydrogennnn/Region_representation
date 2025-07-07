@@ -109,7 +109,9 @@ if __name__ == '__main__':
             raw_labels = pkl.load(f)
 
     for key, value in test_paths.items():
-        result[key] = land_use_inference(value, baseline_embeddings, raw_labels, split, repeat) if task == 'land' else \
+        with open(value, 'rb') as f:
+            raw_embeddings = pkl.load(f)
+        result[key] = land_use_inference(raw_embeddings, baseline_embeddings, raw_labels, split, repeat) if task == 'land' else \
             population_density_inference(value, baseline_embeddings, raw_labels, split, repeat)
     if task == 'land':
         print(f'=========================== Land Use Inference in {city} ===========================')

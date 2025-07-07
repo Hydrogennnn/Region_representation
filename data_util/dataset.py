@@ -452,7 +452,7 @@ class FreezePatternPretrainDataset(Dataset):
                         continue
                     if (key[0] + i, key[1] + j) in self.windows:
                         if idx not in self.anchors:
-                            self.anchors[idx] = key
+                            self.anchors[idx] = key # current grid
                             self.overlaps[idx] = []
                             self.neighbors[idx] = []
                         self.overlaps[idx].append((key[0] + i, key[1] + j))

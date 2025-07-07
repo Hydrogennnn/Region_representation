@@ -157,9 +157,9 @@ def set_seed(seed):
     torch.backends.cudnn.enabled = False
 
 
-def land_use_inference(test_path, baseline_embeddings, raw_labels, split, repeat, verbose=False):
-    with open(test_path, 'rb') as f:
-        raw_embeddings = pkl.load(f)
+def land_use_inference(raw_embeddings, baseline_embeddings, raw_labels, split, repeat, verbose=False):
+    # with open(test_path, 'rb') as f:
+    #     raw_embeddings = pkl.load(f)
 
     raw_embeddings = {k: v for k, v in raw_embeddings.items() if k in baseline_embeddings}
     embeddings = np.zeros((len(raw_embeddings), 64), dtype=np.float32)
