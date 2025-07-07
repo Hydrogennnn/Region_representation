@@ -172,7 +172,7 @@ def land_use_inference(raw_embeddings, baseline_embeddings, raw_labels, split, r
     idxs = np.arange(len(embeddings))
     if not verbose:
         pbar = trange(1, repeat + 1)
-        pbar.set_description(f'Testing: {test_path}')
+        pbar.set_description(f'Testing...')
     else:
         pbar = range(1, repeat + 1)
     for i in pbar:
