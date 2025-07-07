@@ -12,7 +12,7 @@ import torch.utils.data
 import random
 from torch.nn.utils import clip_grad_norm_
 from tqdm import tqdm
-import wandb
+import swanlab
 from data_util.dataset import UnsupervisedPatternDataset, FreezePatternForwardDataset, FreezePatternPretrainDataset
 from model.adaptive_triplet import adaptive_triplet_loss, triplet_loss
 from experiment.evaluator import land_use_inference
@@ -93,7 +93,7 @@ class PatternTrainer(object):
                 losses.append(loss.item())
             print('Epoch {}: InfoNCE Loss {}'.format(epoch, np.mean(losses)))
             if use_wandb:
-                wandb.log({
+                swanlab.log({
                     'pattern-loss': np.mean(losses)
                 },step=epoch)
             self.scheduler.step()
@@ -252,7 +252,7 @@ class RegionTrainer(object):
             # # [average_l1, std_l1, average_kl_div, std_kl_div, average_cos, std_cos]
             eval_res = self.eval_per_epoch(test_loader, baseline_embeddings, raw_labels)
             if use_wandb:
-                wandb.log({
+                swanlab.log({
                     "Region-loss": np.mean(train_losses),
                     "l1": eval_res[0],
                     "kl_div": eval_res[2],
