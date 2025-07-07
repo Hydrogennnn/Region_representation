@@ -101,7 +101,8 @@ if __name__ == '__main__':
     region_aggregator = RegionEncoder(d_hidden=args.dim, d_head=8).to(device)
     
     region_optimizer = torch.optim.Adam(region_aggregator.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-    region_scheduler = torch.optim.lr_scheduler.StepLR(region_optimizer, step_size=1, gamma=args.gamma)
+    # region_scheduler = torch.optim.lr_scheduler.StepLR(region_optimizer, step_size=1, gamma=args.gamma)
+    region_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(region_optimizer, T_max=10,eta_min=args.lr/10)
     region_trainer = RegionTrainer(city_data, pattern_encoder, pattern_optimizer, pattern_scheduler, region_aggregator,
                                    region_optimizer, region_scheduler,device=device)
     # embeddings = pattern_trainer.get_embeddings()
