@@ -66,7 +66,11 @@ if __name__ == '__main__':
     use_wandb = args.use_wandb
     use_svi = args.use_svi
     first_epoch = args.first_epoch
-    setup_seed(args.seed) # reproduct
+    seed = args.seed
+    if seed == -1:
+        print("Experiment on Random State")
+    else:
+        setup_seed(args.seed) # reproduct
 
     pattern_encoder = PatternEncoder(d_building=city_data.building_feature_dim,
                                      d_poi=city_data.poi_feature_dim,

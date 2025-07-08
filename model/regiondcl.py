@@ -107,9 +107,11 @@ class PatternEncoder(nn.Module):
         super(PatternEncoder, self).__init__()
         self.building_projector = nn.Linear(d_building, d_hidden)
         self.poi_projector = nn.Linear(d_poi, d_hidden)
+        self.poi_gate = nn.Linear(d_poi, 1)
         self.use_svi = use_svi
         if self.use_svi:
             self.svi_projector = ProjectionHead(d_svi, d_hidden, svi_drop)
+            self.svi_gate = nn.Linear(d_svi, 1)
             # self.svi_projector = nn.Sequential(
             #     nn.Linear(d_svi, d_hidden),
             #     # nn.ReLU(),  # 手动添加激活函数
@@ -169,12 +171,19 @@ class PatternEncoder(nn.Module):
         encoding_list = [building_encoding]
         mask_list = [building_mask]
         if poi_feature is not None:
-            poi_encoding = self.poi_projector(poi_feature)
+            # poi_encoding = self.poi_projector(poi_feature)
+            poi_score = self.poi_gate(poi_feature)
+            poi_score = F.softmax(poi_score, dim=0)
+            poi_encoding = self.poi_projector(poi_feature) * poi_score
+
             encoding_list.append(poi_encoding)
             mask_list.append(poi_mask)
         
         if self.use_svi and svi_emb is not None:
-            svi_emb = self.svi_projector(svi_emb)
+            svi_score = self.svi_gate(svi_emb)
+            svi_score = F.softmax(svi_score, dim=0)
+            svi_emb = self.svi_projector(svi_emb) * svi_score #(len,b,d)
+
             encoding_list.append(svi_emb)
             mask_list.append(svi_mask)
         
