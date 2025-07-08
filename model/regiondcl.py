@@ -166,40 +166,39 @@ class PatternEncoder(nn.Module):
             (torch.pow(max_distance.unsqueeze(1).unsqueeze(1), 1.5) + 1) / (torch.pow(building_distance, 1.5) + 1))
         building_encoding = self.building_encoder(building_encoding, building_mask, normalized_distance)
         # ==========>
-        # encoding_list = [building_encoding]
-        # mask_list = [building_mask]
-        # if poi_feature is not None:
-        #     poi_encoding = self.poi_projector(poi_feature)
-        #     encoding_list.append(poi_encoding)
-        #     mask_list.append(poi_mask)
-        #
-        # if self.use_svi and svi_emb is not None:
-        #     svi_emb = self.svi_projector(svi_emb)
-        #     encoding_list.append(svi_emb)
-        #     mask_list.append(svi_mask)
-        #
-        # encoding = torch.cat(encoding_list, dim=0)
-        # encoding_mask = torch.cat(mask_list, dim=1)
-        #============>
-        # Dual Cross Attention
         encoding_list = [building_encoding]
         mask_list = [building_mask]
-
-        if poi_feature is not None and self.use_svi:
-            poi_feature = self.poi_projector(poi_feature)
-            svi_emb = self.svi_projector(svi_emb)
-            # poi_svi_encoding = self.cross_attn(building_encoding, poi_feature, svi_emb, building_mask)
-            poi_attn, svi_attn = self.cross_attn(poi_feature, svi_emb, building_encoding, building_encoding, building_mask)
-            encoding_list.append(poi_attn)
-            encoding_list.append(svi_attn)
+        if poi_feature is not None:
+            poi_encoding = self.poi_projector(poi_feature)
+            encoding_list.append(poi_encoding)
             mask_list.append(poi_mask)
+        
+        if self.use_svi and svi_emb is not None:
+            svi_emb = self.svi_projector(svi_emb)
+            encoding_list.append(svi_emb)
             mask_list.append(svi_mask)
-        else:
-            if poi_feature is None:
-                print("poi is None")
-            else:
-                print("svi is None")
-            exit()
+        
+        encoding = torch.cat(encoding_list, dim=0)
+        encoding_mask = torch.cat(mask_list, dim=1)
+        #============>
+        # Dual Cross Attention
+        # encoding_list = [building_encoding]
+        # mask_list = [building_mask]
+
+        # if poi_feature is not None and self.use_svi:
+        #     poi_feature = self.poi_projector(poi_feature)
+        #     svi_emb = self.svi_projector(svi_emb)
+        #     # poi_svi_encoding = self.cross_attn(building_encoding, poi_feature, svi_emb, building_mask)
+        #     poi_attn, svi_attn = self.cross_attn(poi_feature, svi_emb, building_encoding, building_encoding, building_mask)
+        #     encoding_list.append(poi_attn)
+        #     encoding_list.append(svi_attn)
+        #     mask_list.append(poi_mask)
+        #     mask_list.append(svi_mask)
+        # else:
+        #     if poi_feature is None:
+        #         print("poi is None")
+        #     else:
+        #         print("svi is None")
         # if poi_feature is not None:
         #     poi_encoding = self.poi_projector(poi_feature)
         #     poi_encoding = self.cross_attn(poi_encoding, building_encoding, building_encoding, key_padding_mask=building_mask)
@@ -213,8 +212,8 @@ class PatternEncoder(nn.Module):
         #     mask_list.append(svi_mask)
 
 
-        encoding = torch.cat(encoding_list, dim=0)
-        encoding_mask = torch.cat(mask_list, dim=1)
+        # encoding = torch.cat(encoding_list, dim=0)
+        # encoding_mask = torch.cat(mask_list, dim=1)
 
         # bottleneck
         bottleneck_encoding = self.bottleneck(encoding, src_key_padding_mask=encoding_mask) #第二层transformer

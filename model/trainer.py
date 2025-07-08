@@ -207,7 +207,7 @@ class RegionTrainer(object):
                                                      collate_fn=FreezePatternPretrainDataset.collate_fn) for
                          train_dataset in train_datasets]
 
-        baseline_path = 'baselines/{}_doc2vec_grid.pkl'.format('Singapore')
+        baseline_path = 'baselines/{}_doc2vec_grid.pkl'.format('singapore')
         with open(baseline_path, 'rb') as f:
             baseline_embeddings = pkl.load(f)
         with open('data/processed/' + 'Singapore' + '/downstream_region.pkl', 'rb') as f:
