@@ -187,7 +187,7 @@ class PatternEncoder(nn.Module):
 
         # encoding = torch.cat(encoding_list, dim=0)
         # encoding_mask = torch.cat(mask_list, dim=1)
-        encoding = torch.cat([building_encoding, poi_encoding, svi_emb], dim=0)
+        encoding = torch.stack([torch.sum(building_encoding, dim=0), torch.sum(poi_encoding, dim=0), torch.sum(svi_emb, dim=0)])
         # bottleneck
         # bottleneck_encoding = self.bottleneck(encoding, src_key_padding_mask=encoding_mask) #第二层transformer
         # concatenate bottleneck and bottleneck embedding

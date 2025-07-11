@@ -28,20 +28,23 @@ if __name__ == '__main__':
     # x = torch.ones([3,4])
     # print(proj(x).shape)
 
-    x = torch.tensor([
-        [2.0, 3.0],
-        [1.0, 4.0],
-        [0.5, 0.1],
-        [-1.0, 2.0],
-        [2.2, 0.5]
-    ])
+    # x = torch.tensor([
+    #     [2.0, 3.0],
+    #     [1.0, 4.0],
+    #     [0.5, 0.1],
+    #     [-1.0, 2.0],
+    #     [2.2, 0.5]
+    # ])
 
     # 正确归一化
-    out1 = F.softmax(x, dim=0)
-
-    # 错误理解：单元素 softmax → 全是1
-    out2 = F.softmax(x.unsqueeze(-1), dim=0)
-
-    print(out1.shape)  # torch.Size([5, 2])
-    print(out2.shape)  # torch.Size([5, 2, 1])
-    print(out2.squeeze(-1))  # 全是1
+    # out1 = F.softmax(x, dim=0)
+    #
+    # # 错误理解：单元素 softmax → 全是1
+    # out2 = F.softmax(x.unsqueeze(-1), dim=0)
+    #
+    # print(out1.shape)  # torch.Size([5, 2])
+    # print(out2.shape)  # torch.Size([5, 2, 1])
+    # print(out2.squeeze(-1))  # 全是1
+    x=torch.tensor([[1, 2]])
+    y=x.clone()
+    print(torch.stack([x,y]).shape, torch.concat([x,y]).shape)
