@@ -173,7 +173,7 @@ class PatternEncoder(nn.Module):
         building_encoding = self.building_encoder(building_encoding, building_mask, normalized_distance)
         # ==========>
         encoding = []
-        building_encoding = self.building_projector(building_encoding) * building_score
+        building_encoding = building_encoding * building_score
         encoding.append(torch.sum(building_encoding, dim=0))
 
         if poi_feature is not None:
