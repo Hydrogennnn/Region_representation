@@ -172,23 +172,27 @@ class PatternEncoder(nn.Module):
             (torch.pow(max_distance.unsqueeze(1).unsqueeze(1), 1.5) + 1) / (torch.pow(building_distance, 1.5) + 1))
         building_encoding = self.building_encoder(building_encoding, building_mask, normalized_distance)
         # ==========>
+        encoding = []
         building_encoding = self.building_projector(building_encoding) * building_score
+        encoding.append(torch.sum(building_encoding, dim=0))
 
         if poi_feature is not None:
             # poi_encoding = self.poi_projector(poi_feature)
             poi_score = self.poi_gate(poi_feature)
             poi_score = F.softmax(poi_score, dim=0)
             poi_encoding = self.poi_projector(poi_feature) * poi_score
+            encoding.append(torch.sum(poi_encoding, dim=0))
         
         if self.use_svi and svi_emb is not None:
             svi_score = self.svi_gate(svi_emb)
             svi_score = F.softmax(svi_score, dim=0)
             svi_emb = self.svi_projector(svi_emb) * svi_score #(len,b,d)
+            encoding.append(torch.sum(svi_emb, dim=0))
 
 
         # encoding = torch.cat(encoding_list, dim=0)
         # encoding_mask = torch.cat(mask_list, dim=1)
-        encoding = torch.stack([torch.sum(building_encoding, dim=0), torch.sum(poi_encoding, dim=0), torch.sum(svi_emb, dim=0)])
+        encoding = torch.stack(encoding)
         # bottleneck
         # bottleneck_encoding = self.bottleneck(encoding, src_key_padding_mask=encoding_mask) #第二层transformer
         # concatenate bottleneck and bottleneck embedding
