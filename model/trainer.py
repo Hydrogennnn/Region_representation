@@ -94,7 +94,8 @@ class PatternTrainer(object):
             print('Epoch {}: InfoNCE Loss {}'.format(epoch, np.mean(losses)))
             if use_wandb:
                 swanlab.log({
-                    'pattern-loss': np.mean(losses)
+                    'pattern-loss': np.mean(losses),
+                    'lr': self.optimizer.state_dict()['param_groups'][0]['lr']
                 },step=epoch)
             self.scheduler.step()
             if epoch % 10 == 0:
@@ -212,7 +213,7 @@ class RegionTrainer(object):
             baseline_embeddings = pkl.load(f)
         with open('data/processed/' + 'Singapore' + '/downstream_region.pkl', 'rb') as f:
             raw_labels = pkl.load(f)
-
+        best_loss = 1e9
         for epoch in range(1, epochs+1):
             train_losses = []
             self.region_model.train()
@@ -250,13 +251,17 @@ class RegionTrainer(object):
                 self.save_embedding_freeze(save_path + save_name + str(epoch) + '.pkl', test_loader)
             print('Epoch {}, Tiplet Loss: {}'.format(epoch, np.mean(train_losses)))
             # # [average_l1, std_l1, average_kl_div, std_kl_div, average_cos, std_cos]
-            eval_res = self.eval_per_epoch(test_loader, baseline_embeddings, raw_labels)
+            # eval_res = self.eval_per_epoch(test_loader, baseline_embeddings, raw_labels)
+            if np.mean(train_losses) < best_loss:
+                best_loss = np.mean(train_losses)
+                self.save_embedding_freeze(save_path + save_name + 'best' + '.pkl', test_loader)
             if use_wandb:
                 swanlab.log({
                     "Region-loss": np.mean(train_losses),
-                    "l1": eval_res[0],
-                    "kl_div": eval_res[2],
-                    "cos": eval_res[4]
+                    "lr": self.optimizer.state_dict()['param_groups'][0]['lr']
+                    # "l1": eval_res[0],
+                    # "kl_div": eval_res[2],
+                    # "cos": eval_res[4]
                 }, step=epoch+first_epoch)
             self.region_scheduler.step()
 

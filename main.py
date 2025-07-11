@@ -40,6 +40,7 @@ def parse_args():
     parser.add_argument('--first_epoch', type=int, default=20)
     parser.add_argument('--seed', type=int, default=3407)
     parser.add_argument('--radius', type=int, default=100)
+    parser.add_argument('--device', type=int, default=0)
     return parser.parse_args()
 
 def setup_seed(seed):
@@ -55,10 +56,10 @@ def setup_seed(seed):
 
 
 if __name__ == '__main__':
-    os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+    # os.environ["CUDA_VISIBLE_DEVICES"] = "2"
     args = parse_args()
     city_data = CityData(args.city, with_random=not args.no_random, random_radius=args.radius)
-    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    device = torch.device(f'cuda:{args.device}' if torch.cuda.is_available() else 'cpu')
     print('Use:', device)
     args.save_name += ("svi_" if args.use_svi else "") + \
         f"dim{args.dim}-lambda{args.lamb}-lr{args.lr}-svi_drop{args.svi_drop}-bndrop{args.bottleneck_dropout}-r{args.radius}-seed{args.seed}"
@@ -106,7 +107,7 @@ if __name__ == '__main__':
     
     region_optimizer = torch.optim.Adam(region_aggregator.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     # region_scheduler = torch.optim.lr_scheduler.StepLR(region_optimizer, step_size=1, gamma=args.gamma)
-    region_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(region_optimizer, T_max=10,eta_min=args.lr/10)
+    region_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(region_optimizer, T_max=10, eta_min=args.lr/10)
     region_trainer = RegionTrainer(city_data, pattern_encoder, pattern_optimizer, pattern_scheduler, region_aggregator,
                                    region_optimizer, region_scheduler,device=device)
     # embeddings = pattern_trainer.get_embeddings()

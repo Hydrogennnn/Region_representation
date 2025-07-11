@@ -62,7 +62,7 @@ class SVIEncoder():
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data-dir', type=str, default='../data/processed/Singapore')
+    parser.add_argument('--city', type=str, default='Singapore') # Singapore / NYC
     parser.add_argument('--gpu', type=int, default=0)
     parser.add_argument('--svi-dir', type=str, default='SVI')
     parser.add_argument('--svi-pos', type=str, default='svi_sampling_point.csv')
@@ -70,10 +70,14 @@ def main():
     parser.add_argument('--distance', type=float, default=20.0)
     args = parser.parse_args()
 
-    data_dir = args.data_dir
+    data_dir = f"../data/processed/{args.city}"
+    #../data/processed/Singapore
     svi_dir = os.path.join(data_dir, args.svi_dir)
     svi_pos_dir = os.path.join(svi_dir, args.svi_pos)
     save_dir = os.path.join(data_dir, args.sav_dir)
+    if not os.path.exists(save_dir):
+        os.mkdir(save_dir)
+
 
     # Dump `objectid` and `angle`
     metadata_path = os.path.join(save_dir, 'im_metadata.csv')
