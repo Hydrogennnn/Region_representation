@@ -106,7 +106,7 @@ class PatternEncoder(nn.Module):
                  use_svi=False, svi_drop=0.0, ):
         super(PatternEncoder, self).__init__()
         self.building_projector = nn.Linear(d_building, d_hidden)
-        self.building_gate = nn.Linear(d_building, d_hidden)
+        self.building_gate = nn.Linear(d_building, 1)
         self.poi_projector = nn.Linear(d_poi, d_hidden)
         self.poi_gate = nn.Linear(d_poi, 1)
         self.use_svi = use_svi
@@ -158,6 +158,9 @@ class PatternEncoder(nn.Module):
 
     def get_all(self, building_feature, building_mask, xy, poi_feature, poi_mask, svi_emb, svi_mask):
         building_encoding = self.building_projector(building_feature)
+        building_score = self.building_gate(building_encoding)
+        building_score = F.softmax(building_score, dim=0)
+
         batch_size = building_encoding.shape[1]
         building_loc = xy.transpose(0, 1)
         building_distance = torch.norm(building_loc.unsqueeze(2) - building_loc.unsqueeze(1), dim=3)
@@ -169,9 +172,7 @@ class PatternEncoder(nn.Module):
             (torch.pow(max_distance.unsqueeze(1).unsqueeze(1), 1.5) + 1) / (torch.pow(building_distance, 1.5) + 1))
         building_encoding = self.building_encoder(building_encoding, building_mask, normalized_distance)
         # ==========>
-        building_score = self.building_gate(building_encoding)
-        building_score = F.softmax(building_score, dim=0)
-        building_encoding = self.building_projector(building_encoding, building_score)
+        building_encoding = self.building_projector(building_encoding) * building_score
 
         if poi_feature is not None:
             # poi_encoding = self.poi_projector(poi_feature)
