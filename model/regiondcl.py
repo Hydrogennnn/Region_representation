@@ -168,6 +168,7 @@ class PatternEncoder(nn.Module):
             (torch.pow(max_distance.unsqueeze(1).unsqueeze(1), 1.5) + 1) / (torch.pow(building_distance, 1.5) + 1))
         building_encoding = self.building_encoder(building_encoding, building_mask, normalized_distance)
         # ==========>
+        #fuck
         encoding_list = [building_encoding]
         mask_list = [building_mask]
         if poi_feature is not None:
