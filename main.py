@@ -60,7 +60,8 @@ if __name__ == '__main__':
     city_data = CityData(args.city, with_random=not args.no_random, random_radius=args.radius)
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     print('Use:', device)
-    args.save_name += ("svi_" if args.use_svi else "") + \
+    args.save_name += f"_{args.city}_" + \
+        ("svi_" if args.use_svi else "") + \
         f"dim{args.dim}-lambda{args.lamb}-lr{args.lr}-svi_drop{args.svi_drop}-bndrop{args.bottleneck_dropout}-r{args.radius}-seed{args.seed}"
 
     use_wandb = args.use_wandb

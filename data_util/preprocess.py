@@ -49,7 +49,7 @@ class Preprocess(object):
         self.boundary = boundary
 
         #SVI process
-        self.svi_metafile_path = 'data/processed/Singapore/SVI/svi_sampling_point.csv'
+        self.svi_metafile_path = f'data/processed/{city}/SVI/svi_sampling_point.csv'
 
     def get_svi_obj(self):
         svi_pos = pd.read_csv(self.svi_metafile_path)  # 加载pos转换为gpd
@@ -236,7 +236,7 @@ class Preprocess(object):
             # find the Random SVI
             svi_random_index = random_svi_tree.query_ball_point([shape.centroid.x, shape.centroid.y], diameter)
             for j in svi_random_index:
-                if shape.contains(Point(random_point_loc[j][0], random_point_loc[j][1])):
+                if shape.contains(Point(random_svi_loc[j][0], random_svi_loc[j][1])):
                     pattern['random_svi_point'].append(j)
             # ignore the pattern without any building & random point
             if len(pattern['building']) == 0:

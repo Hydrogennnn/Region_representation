@@ -349,7 +349,7 @@ class UnsupervisedPatternDataset(Dataset):
                 max_poi_seq_len = max(max_poi_seq_len, pattern['poi_feature'].shape[0])
                 poi_feature_dim = pattern['poi_feature'].shape[1]
         if max_poi_seq_len == 0:
-            poi_feature = None
+            poi_feature = torch.zeros(1, batch_size, poi_feature_dim)
             poi_mask = None
         else:
             if max_poi_seq_len > max_seq_len_limit:
@@ -377,7 +377,7 @@ class UnsupervisedPatternDataset(Dataset):
             max_svi_len = max_seq_len_limit
 
         if max_svi_len == 0:
-            svi_feature = None
+            svi_feature = torch.zeros(1, batch_size, poi_feature_dim)
             svi_mask = None
         else:
             svi_feature = torch.zeros(max_svi_len, batch_size, svi_emb_size)
