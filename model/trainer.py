@@ -236,8 +236,6 @@ class RegionTrainer(object):
                         anchor = regions[0].mean(dim=0)
                         positive = regions[1].mean(dim=0)
                         negative = regions[2].mean(dim=0)
-                        print(adaptive)
-                        exit()
                         if adaptive:
                             loss = criterion(anchor, positive, negative, patterns[1], patterns[2], _lambda=_lambda)
                         else:
