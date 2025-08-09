@@ -261,7 +261,7 @@ class RegionTrainer(object):
             if use_wandb:
                 swanlab.log({
                     "Region-loss": np.mean(train_losses),
-                    "lr": self.optimizer.state_dict()['param_groups'][0]['lr']
+                    "lr": self.region_optimizer.state_dict()['param_groups'][0]['lr']
                     # "l1": eval_res[0],
                     # "kl_div": eval_res[2],
                     # "cos": eval_res[4]
