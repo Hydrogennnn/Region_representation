@@ -49,7 +49,7 @@ class Preprocess(object):
         self.boundary = boundary
 
         #SVI process
-        self.svi_metafile_path = 'data/processed/Singapore/SVI/svi_sampling_point.csv'
+        self.svi_metafile_path = f'data/processed/{city}/SVI/svi_sampling_point.csv'
 
     def get_svi_obj(self):
         svi_pos = pd.read_csv(self.svi_metafile_path)  # 加载pos转换为gpd
@@ -153,8 +153,10 @@ class Preprocess(object):
         return building, poi_not_attached
 
     def poisson_disk_sampling(self, building_list, poi_list, radius, force=False):
+        print("Perform poi PDS...")
         random_point_out_path = self.out_path + 'random_point_' + str(radius) + 'm.pkl'
         if not force and os.path.exists(random_point_out_path):
+            print(f"Loading {random_point_out_path}....")
             with open(random_point_out_path, 'rb') as f:
                 result = pkl.load(f)
             return result
@@ -164,9 +166,11 @@ class Preprocess(object):
             pkl.dump(result, f, protocol=4)
         return result
 
-    def svi_PDS(self, build_list, svi_list, radius, force=False):
+    def svi_PDS(self, build_list, svi_list, radius, force=True):
+        print("Perform svi PDS...")
         svi_pds_out_path = self.out_path + 'svi_pds_' + str(radius) + 'm.pkl'
         if not force and os.path.exists(svi_pds_out_path):
+            print(f"Loading {svi_pds_out_path}...")
             with open(svi_pds_out_path, 'rb') as f:
                 result = pkl.load(f)
             return result
@@ -236,7 +240,7 @@ class Preprocess(object):
             # find the Random SVI
             svi_random_index = random_svi_tree.query_ball_point([shape.centroid.x, shape.centroid.y], diameter)
             for j in svi_random_index:
-                if shape.contains(Point(random_point_loc[j][0], random_point_loc[j][1])):
+                if shape.contains(Point(random_svi_loc[j][0], random_svi_loc[j][1])):
                     pattern['random_svi_point'].append(j)
             # ignore the pattern without any building & random point
             if len(pattern['building']) == 0:

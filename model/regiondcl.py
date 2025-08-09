@@ -71,13 +71,25 @@ class DistanceBiasedTransformer(nn.Module):
         return hidden
 
 
+class MLP(nn.Module):
+    def __init__(self, input_dim, output_dim):
+        super(MLP, self).__init__()
+        layers = []
+        self.hidden_dim = input_dim * 3 // 2
+        layers.append(nn.Linear(input_dim, self.hidden_dim))
+        layers.append(nn.ReLU())
+        layers.append(nn.Linear(self.hidden_dim, output_dim))
+        self.model = nn.Sequential(*layers)
+    def forward(self, x):
+        return self.model(x)
+
 class ProjectionHead(nn.Module):
     """
     The projection head is used to
     transform the space and the time embeddings to the same embedding space with the same dimensionality.
     """
     def __init__(self, embedding_dim, projection_dim=256, dropout=0.1):
-        super().__init__()
+        super(ProjectionHead, self).__init__()
         self.projection = nn.Linear(embedding_dim, projection_dim)
         self.gelu = nn.GELU()  # apply the Gaussian Error Linear Units function
         self.fc = nn.Linear(projection_dim, projection_dim)
@@ -103,23 +115,17 @@ class PatternEncoder(nn.Module):
                  building_head, building_layers,
                  building_dropout, building_activation, building_distance_penalty,
                  bottleneck_head, bottleneck_layers, bottleneck_dropout, bottleneck_activation,
-                 use_svi=False, svi_drop=0.0, ):
+                 use_svi=False, svi_drop=0.0):
         super(PatternEncoder, self).__init__()
         self.building_projector = nn.Linear(d_building, d_hidden)
-        self.building_gate = nn.Linear(d_building, d_hidden)
+        self.building_gate = nn.Linear(d_building, 1)
         self.poi_projector = nn.Linear(d_poi, d_hidden)
         self.poi_gate = nn.Linear(d_poi, 1)
         self.use_svi = use_svi
         if self.use_svi:
             self.svi_projector = ProjectionHead(d_svi, d_hidden, svi_drop)
             self.svi_gate = nn.Linear(d_svi, 1)
-            # self.svi_projector = nn.Sequential(
-            #     nn.Linear(d_svi, d_hidden),
-            #     # nn.ReLU(),  # 手动添加激活函数
-            #     # nn.LayerNorm(normalized_shape=d_hidden)
-            #     # nn.Dropout(p=svi_drop)
-            # )
-            
+        self.d_hidden = d_hidden
         self.building_encoder = DistanceBiasedTransformer(d_model=d_hidden,
                                                           nhead=building_head,
                                                           num_layers=building_layers,
@@ -129,14 +135,14 @@ class PatternEncoder(nn.Module):
         self.bottleneck = nn.TransformerEncoder(
             nn.TransformerEncoderLayer(d_hidden, nhead=bottleneck_head, dim_feedforward=d_feedforward,
                                        dropout=bottleneck_dropout, activation=bottleneck_activation), bottleneck_layers)
-        # self.svi_building_cross_atten = nn.MultiheadAttention(embed_dim=d_hidden,
-        #                                                       num_heads=8)
-        # self.poi_building_cross_atten = nn.MultiheadAttention(embed_dim=d_hidden,
-        #                                                       num_heads=8)
-        self.cross_attn = RegionMHA(d_model=d_hidden, num_heads=8)
+
+        # cross modal
+        self.experts = nn.ModuleList([MLP(d_hidden, d_hidden) for _ in range(3)])
+        self.gates = nn.Linear(3*d_hidden, 3)
+
 
     def forward(self, building_feature, building_mask, xy, poi_feature, poi_mask, svi_emb, svi_mask):
-        origin_feature = self.get_all(building_feature, building_mask, xy, poi_feature, poi_mask, svi_emb, svi_mask).mean(dim=0)  # (seq_len, batch_size, d)
+        origin_feature = self.get_all(building_feature, building_mask, xy, poi_feature, poi_mask, svi_emb, svi_mask)  # (seq_len, batch_size, d)
         return origin_feature
         # if not self.use_svi:
         #     return origin_feature.mean(dim=0)
@@ -148,7 +154,7 @@ class PatternEncoder(nn.Module):
     def get_embedding(self, building_feature, building_mask, xy, poi_feature, poi_mask, svi_emb, svi_mask):
         # add up the 0-100 dimension of building density to test the performance
         # return self.get_all(building_feature, building_mask, xy, poi_feature, poi_mask).mean(dim=0)
-        origin_feature = self.get_all(building_feature, building_mask, xy, poi_feature, poi_mask, svi_emb, svi_mask).mean(dim=0)  # (seq_len, batch_size, d)
+        origin_feature = self.get_all(building_feature, building_mask, xy, poi_feature, poi_mask, svi_emb, svi_mask)  # (seq_len, batch_size, d)
         return origin_feature
         # if not self.use_svi:
         #     return origin_feature.mean(dim=0)
@@ -157,8 +163,12 @@ class PatternEncoder(nn.Module):
         #     return torch.cat([origin_feature, svi_emb], dim=0).mean(dim=0)
 
     def get_all(self, building_feature, building_mask, xy, poi_feature, poi_mask, svi_emb, svi_mask):
-        building_encoding = self.building_projector(building_feature)
+        building_encoding = self.building_projector(building_feature) #(seq, b, d)
+        building_score = self.building_gate(building_feature) #(seq, b, 1)
+        building_score = F.softmax(building_score, dim=0)
+
         batch_size = building_encoding.shape[1]
+
         building_loc = xy.transpose(0, 1)
         building_distance = torch.norm(building_loc.unsqueeze(2) - building_loc.unsqueeze(1), dim=3)
         # # Test the new formula
@@ -169,30 +179,56 @@ class PatternEncoder(nn.Module):
             (torch.pow(max_distance.unsqueeze(1).unsqueeze(1), 1.5) + 1) / (torch.pow(building_distance, 1.5) + 1))
         building_encoding = self.building_encoder(building_encoding, building_mask, normalized_distance)
         # ==========>
-        #fuck
+        building_encoding = (building_encoding * building_score) 
         encoding_list = [building_encoding]
         mask_list = [building_mask]
         if poi_feature is not None:
-            # poi_encoding = self.poi_projector(poi_feature)
             poi_score = self.poi_gate(poi_feature)
             poi_score = F.softmax(poi_score, dim=0)
             poi_encoding = self.poi_projector(poi_feature) * poi_score
+            # print(poi_score)
+            encoding_list.append(poi_encoding) #(batch_size,d)
+            mask_list.append(poi_mask)
+        # else:
+        #     padding = torch.zeros(batch_size, self.d_hidden).to(self.device)
+        #     encoding_list.append(padding)
         
         if self.use_svi and svi_emb is not None:
             svi_score = self.svi_gate(svi_emb)
             svi_score = F.softmax(svi_score, dim=0)
             svi_emb = self.svi_projector(svi_emb) * svi_score #(len,b,d)
+            # print(svi_score)
+            encoding_list.append(svi_emb)
+            mask_list.append(svi_mask)
+        # else:
+        #     padding = torch.zeros(batch_size, self.d_hidden).to(self.device)
+        #     encoding_list.append(padding)
+        # MoE
+        # gate_score = self.gates(torch.cat(encoding_list, dim=1)) #(b, 3)
+        # if poi_feature is None:
+        #     print('poi none')
+        #     gate_score[:, 1] = -1e6
+        # if svi_emb is None:
+        #     gate_score[:, 2] = -1e6
+        #     print('svi none')
+
+        # gate_score = F.softmax(gate_score, dim=-1)
+
+        
+        # experts_output = [self.experts[i](encoding_list[i]) for i in range(3)]
+        # experts_output = torch.stack(experts_output, dim=1) # (b, 3, d)
+        # output = torch.bmm(gate_score.unsqueeze(1), experts_output).squeeze(1)
+        # return torch.cat(encoding_list, dim=0).mean(0)
 
 
-        # encoding = torch.cat(encoding_list, dim=0)
-        # encoding_mask = torch.cat(mask_list, dim=1)
-        encoding = torch.cat([building_encoding, poi_encoding, svi_emb], dim=0)
+        encoding_mask = torch.cat(mask_list, dim=1)
+        encoding = torch.cat(encoding_list, dim=0)
         # bottleneck
-        # bottleneck_encoding = self.bottleneck(encoding, src_key_padding_mask=encoding_mask) #第二层transformer
+        bottleneck_encoding = self.bottleneck(encoding, src_key_padding_mask=encoding_mask) #第二层transformer
         # concatenate bottleneck and bottleneck embedding
         # print(bottleneck_encoding.shape)
         # exit()
-        return encoding
+        return bottleneck_encoding.mean(dim=0)
 
 
 class TransformerPatternEncoder(nn.Module):

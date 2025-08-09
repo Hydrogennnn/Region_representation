@@ -91,9 +91,9 @@ if __name__ == '__main__':
         #     for j in range(10, 100, 10):
         #         test_paths[f'Drop{drop}-epoch{j}'] = f'embeddings/{city}/grid_bndropsvi_dim64-lambda100-lr0.0001-svi_drop0.1-bndrop{drop}-seed3407_RegionDCL20_{j}.pkl'
         
-        for i in range(10, 110, 10): #lnsvidim128-lambda100-lr0.0001_RegionDCL20_40.pkl
-            test_paths[f'RegionDCL-{i}'] = f'embeddings/{city}/dynamic_selectsvi_dim64-lambda100-lr5e-05-svi_drop0.1-bndrop0.2-r100-seed3407_RegionDCL20_{i}.pkl'
-        # test_paths['RegionDCL-Best'] = f'embeddings/{city}/eval_per_epochsvi_dim64-lambda100-lr0.0001-svi_drop0.1-bndrop0.2-r100-seed49_RegionDCL20_{i}.pkl'
+        for i in range(10, 30, 10): #lnsvidim128-lambda100-lr0.0001_RegionDCL20_40.pkl
+            test_paths[f'RegionDCL-{i}'] = f'embeddings/{city}/moe_Singapore_svi_dim64-lambda100-lr0.0001-svi_drop0.1-bndrop0.2-r100-seed3407_RegionDCL20_{i}.pkl'
+        test_paths['RegionDCL-Best'] = f'embeddings/{city}/moe_Singapore_svi_dim64-lambda100-lr0.0001-svi_drop0.1-bndrop0.2-r100-seed3407_RegionDCL20_best.pkl'
         # test_paths['RegionDCL_WITH_SVI'] = 'embeddings/{}/RegionDCL_svi_20.pkl'.format(city)
         # test_paths['RegionDCL_SVI_zero'] = 'embeddings/{}/svi_RegionDCL100.pkl'.format(city)
 

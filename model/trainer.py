@@ -41,8 +41,9 @@ class PatternTrainer(object):
         building_feature = torch.from_numpy(building_feature).to(self.device)
         building_mask = torch.from_numpy(building_mask).to(self.device)
         xy = torch.from_numpy(xy).to(self.device)
-        svi_emb = svi_emb.to(self.device)
-        svi_mask = torch.from_numpy(svi_mask).to(self.device)
+        if svi_emb is not None:      
+            svi_emb = svi_emb.to(self.device)
+            svi_mask = torch.from_numpy(svi_mask).to(self.device)
         if poi_feature is not None:
             poi_feature = torch.from_numpy(poi_feature).to(self.device)
             poi_mask = torch.from_numpy(poi_mask).to(self.device)
@@ -208,11 +209,11 @@ class RegionTrainer(object):
                                                      collate_fn=FreezePatternPretrainDataset.collate_fn) for
                          train_dataset in train_datasets]
 
-        baseline_path = 'baselines/{}_doc2vec_grid.pkl'.format('singapore')
-        with open(baseline_path, 'rb') as f:
-            baseline_embeddings = pkl.load(f)
-        with open('data/processed/' + 'Singapore' + '/downstream_region.pkl', 'rb') as f:
-            raw_labels = pkl.load(f)
+        # baseline_path = 'baselines/{}_doc2vec_grid.pkl'.format('singapore')
+        # with open(baseline_path, 'rb') as f:
+        #     baseline_embeddings = pkl.load(f)
+        # with open('data/processed/' + 'Singapore' + '/downstream_region.pkl', 'rb') as f:
+        #     raw_labels = pkl.load(f)
         best_loss = 1e9
         for epoch in range(1, epochs+1):
             train_losses = []
@@ -235,6 +236,8 @@ class RegionTrainer(object):
                         anchor = regions[0].mean(dim=0)
                         positive = regions[1].mean(dim=0)
                         negative = regions[2].mean(dim=0)
+                        print(adaptive)
+                        exit()
                         if adaptive:
                             loss = criterion(anchor, positive, negative, patterns[1], patterns[2], _lambda=_lambda)
                         else:

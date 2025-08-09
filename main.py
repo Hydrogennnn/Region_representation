@@ -61,7 +61,8 @@ if __name__ == '__main__':
     city_data = CityData(args.city, with_random=not args.no_random, random_radius=args.radius)
     device = torch.device(f'cuda:{args.device}' if torch.cuda.is_available() else 'cpu')
     print('Use:', device)
-    args.save_name += ("svi_" if args.use_svi else "") + \
+    args.save_name +=  \
+        ("svi_" if args.use_svi else "") + \
         f"dim{args.dim}-lambda{args.lamb}-lr{args.lr}-svi_drop{args.svi_drop}-bndrop{args.bottleneck_dropout}-r{args.radius}-seed{args.seed}"
 
     use_wandb = args.use_wandb
@@ -102,19 +103,19 @@ if __name__ == '__main__':
     pattern_trainer = PatternTrainer(city_data, pattern_encoder, pattern_optimizer, pattern_scheduler, use_svi=use_svi,device=device)
     pattern_save_name = args.save_name + '_' + 'pattern_embedding'
 
-    pattern_trainer.train_pattern_contrastive(epochs=first_epoch, save_name=pattern_save_name, use_wandb=use_wandb)
+    # pattern_trainer.train_pattern_contrastive(epochs=first_epoch, save_name=pattern_save_name, use_wandb=use_wandb)
     region_aggregator = RegionEncoder(d_hidden=args.dim, d_head=8).to(device)
     
     region_optimizer = torch.optim.Adam(region_aggregator.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     # region_scheduler = torch.optim.lr_scheduler.StepLR(region_optimizer, step_size=1, gamma=args.gamma)
     region_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(region_optimizer, T_max=10, eta_min=args.lr/10)
     region_trainer = RegionTrainer(city_data, pattern_encoder, pattern_optimizer, pattern_scheduler, region_aggregator,
-                                   region_optimizer, region_scheduler,device=device)
+                                   region_optimizer, region_scheduler, device=device)
     # embeddings = pattern_trainer.get_embeddings()
     # Alternatively, you can load the trained pattern embedding
     embeddings = np.load(f'embeddings/{args.city}/{pattern_save_name}_{first_epoch}.npy')  # load pattern_embedding of stage1
     region_save_name = args.save_name + '_'+ 'RegionDCL'+f'{first_epoch}_'
-    region_trainer.train_region_triplet_freeze(epochs=100, embeddings=embeddings, adaptive=not args.fixed, save_name=region_save_name,
+    region_trainer.train_region_triplet_freeze(epochs=40, embeddings=embeddings, adaptive=not args.fixed, save_name=region_save_name,
                                                window_sizes=[1000, 2000, 3000], use_wandb=use_wandb, _lambda=args.lamb, first_epoch=first_epoch
                                                )
     print('Training finished. Embeddings have been saved in embeddings/ directory.')
