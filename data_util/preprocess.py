@@ -51,11 +51,12 @@ class Preprocess(object):
         #SVI process
         self.svi_metafile_path = f'data/processed/{city}/SVI/svi_sampling_point.csv'
 
-    def get_svi_obj(self):
+    def get_svi_obj(self, city):
         svi_pos = pd.read_csv(self.svi_metafile_path)  # 加载pos转换为gpd
         svi_geom = [Point(pos) for pos in svi_pos[['POINT_X', 'POINT_Y']].values]
         svi_pos_gdf = gpd.GeoDataFrame(svi_pos['OBJECTID_1'], geometry=svi_geom, crs="EPSG:4326")
-        svi_pos_gdf = svi_pos_gdf.to_crs("EPSG:3414")
+        if city == 'Singapore':
+            svi_pos_gdf = svi_pos_gdf.to_crs("EPSG:3414")
         self.svis = svi_pos_gdf
         svi_list = []
         for idx,p in svi_pos_gdf.iterrows():
@@ -332,7 +333,7 @@ def main():
     preprocessor = Preprocess(city)
     building, poi = preprocessor.get_building_and_poi()
     random_point = preprocessor.poisson_disk_sampling(building, poi, radius)
-    svi = preprocessor.get_svi_obj()
+    svi = preprocessor.get_svi_obj(city)
     random_svi = preprocessor.svi_PDS(building, svi, radius)
     preprocessor.rasterize_buildings(building)
     preprocessor.partition(building, poi, random_point, radius, svi, random_svi)
