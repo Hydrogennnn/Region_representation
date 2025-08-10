@@ -103,7 +103,7 @@ if __name__ == '__main__':
     pattern_trainer = PatternTrainer(city_data, pattern_encoder, pattern_optimizer, pattern_scheduler, use_svi=use_svi,device=device)
     pattern_save_name = args.save_name + '_' + 'pattern_embedding'
 
-    # pattern_trainer.train_pattern_contrastive(epochs=first_epoch, save_name=pattern_save_name, use_wandb=use_wandb)
+    pattern_trainer.train_pattern_contrastive(epochs=first_epoch, save_name=pattern_save_name, use_wandb=use_wandb)
     region_aggregator = RegionEncoder(d_hidden=args.dim, d_head=8).to(device)
     
     region_optimizer = torch.optim.Adam(region_aggregator.parameters(), lr=args.lr, weight_decay=args.weight_decay)

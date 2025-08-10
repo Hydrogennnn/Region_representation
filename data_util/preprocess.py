@@ -57,6 +57,8 @@ class Preprocess(object):
         svi_pos_gdf = gpd.GeoDataFrame(svi_pos['OBJECTID_1'], geometry=svi_geom, crs="EPSG:4326")
         if city == 'Singapore':
             svi_pos_gdf = svi_pos_gdf.to_crs("EPSG:3414")
+        else:
+            svi_pos_gdf = svi_pos_gdf.to_crs("EPSG:32118")
         self.svis = svi_pos_gdf
         svi_list = []
         for idx,p in svi_pos_gdf.iterrows():
@@ -167,7 +169,7 @@ class Preprocess(object):
             pkl.dump(result, f, protocol=4)
         return result
 
-    def svi_PDS(self, build_list, svi_list, radius, force=True):
+    def svi_PDS(self, build_list, svi_list, radius, force=False):
         print("Perform svi PDS...")
         svi_pds_out_path = self.out_path + 'svi_pds_' + str(radius) + 'm.pkl'
         if not force and os.path.exists(svi_pds_out_path):

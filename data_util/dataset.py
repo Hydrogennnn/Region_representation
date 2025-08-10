@@ -370,11 +370,12 @@ class UnsupervisedPatternDataset(Dataset):
         #SVI
         max_svi_len = 0
         svi_emb_size = 768
+        max_svi_limit = 128
         for pattern in batch:
             if pattern['svi_emb'] is not None:
                 max_svi_len = max(max_svi_len, len(pattern['svi_emb']))
-        if max_svi_len > max_seq_len_limit:
-            max_svi_len = max_seq_len_limit
+        if max_svi_len > max_svi_limit:
+            max_svi_len = max_svi_limit
 
         if max_svi_len == 0:
             svi_feature = None
@@ -389,11 +390,11 @@ class UnsupervisedPatternDataset(Dataset):
                 if svi_emb is None:
                     continue
                 svi_cnt = svi_emb.shape[0]
-                if svi_cnt > max_seq_len_limit:
-                    choice_idx = torch.Tensor(np.random.choice(svi_cnt, max_seq_len_limit, replace=False)).long()
+                if svi_cnt > max_svi_limit:
+                    choice_idx = torch.Tensor(np.random.choice(svi_cnt, max_svi_limit, replace=False)).long()
                     cur_svi = svi_emb[choice_idx]
-                    svi_feature[:max_seq_len_limit, idx, :] = cur_svi
-                    svi_mask[idx, :max_seq_len_limit] = 0
+                    svi_feature[:max_svi_limit, idx, :] = cur_svi
+                    svi_mask[idx, :max_svi_limit] = 0
                 else:
                     cur_svi = svi_emb
                     svi_feature[:svi_cnt, idx, :] = cur_svi

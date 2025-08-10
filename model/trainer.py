@@ -77,6 +77,10 @@ class PatternTrainer(object):
                                                    collate_fn=UnsupervisedPatternDataset.collate_fn_dropout)
         test_loader = torch.utils.data.DataLoader(dataset, batch_size=64, shuffle=False,
                                                   collate_fn=UnsupervisedPatternDataset.collate_fn)
+        # batches = list(train_loader)
+        # for p in batches[131]:
+        #     print(p.shape)
+        # exit()
         criterion = self.infonce_loss
         for epoch in range(1, epochs+1):
             print('epoch:',epoch, 'model_state', self.model.training)
